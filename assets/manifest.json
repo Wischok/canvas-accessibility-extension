@@ -1,0 +1,33 @@
+{
+    "name": "Canvas Accessibility Extension",
+    "version": "1.0.0",
+    "description": "Help facilitate your accessiblity work through report generation and content saving",
+    "permissions": ["storage", "tabs", "clipboardWrite", "downloads", 
+    "downloads.open", "fileBrowserHandler", "fileSystemProvider"],
+    "host_permissions": ["https://*instructure.com/*"],
+    "background": {
+        "service_worker ": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://*instructure.com/*"],
+            "js": ["contentScript.js"]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+            ],
+            "matches": ["https://*instructure.com/*"]
+        }
+    ],
+    "action": {
+        "default_icon": {
+            
+        },
+        "default_title": "Canvas Accessibility Extension",
+        "default_popup": "popup.html"
+    },
+    "manifest_version": 3
+
+}
