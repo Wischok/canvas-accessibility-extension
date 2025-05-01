@@ -1,0 +1,42 @@
+<link href="popup.css" rel="stylesheet" type="text/css" />
+<!-- <script type="module" src="popup.js"></script> -->
+
+<div class="container">
+  <div>
+    <div class="title">Canvas Accessibility Tool</div>
+    <p>Reviewer: Aaron Evans</p>
+    <p>Instructor: </p>
+    <p>Course ID: </p>
+    <div class="errors" id="errors"></div>
+    <form class="new-error-controls">
+      <!-- select error dropdown -->
+      <div class="field-wrapper flex">
+        <div class="label-wrapper">
+          <label for="seo_goal2" class="lbl" id="combo3-lbl">What's the Goal?<span aria-hidden="true">*</span></label>
+        </div>
+        <div class="input-wrapper project-input-wrapper">
+          <div class="combo combo-standard combo3">
+            <input class="combo-input" name="Error Type" id="error-type" role="combobox" tabindex="0"
+              aria-label="Error Type Selection" type="text" aria-haspopup="listbox" aria-controls="listbox3" value=""
+              placeholder="Error Instance Here" autocomplete="off" aria-expanded="false">
+            <!-- Combo Menu | List of Options -->
+            <div class="combo-menu" role="listbox" id="listbox3" aria-label="Error Type Selection Dropdown." tabindex="-1">
+              <div role="option" id="combo3-0" class="combo-option" aria-selected="true"
+              value="abbreviations are present"
+              >Abbreviation</div>
+              <div role="option" id="combo3-1" class="combo-option" aria-selected="false"
+              value=""
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="input-wrapper">
+        <input type="text" name="error instance" id="new-error-desc" placeholder="error instance" required>
+      </div>
+      <button type="submit">
+        submit
+      </button>
+    </form>
+  </div>
+</div>

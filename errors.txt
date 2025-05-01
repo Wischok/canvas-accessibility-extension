@@ -1,0 +1,10 @@
+All Caps:Extensive all caps are present:When all caps are present, screen readers state them like acronyms. Consider an entire sentence in all caps being stated LETTER BY LETTER.;
+Abbreviation:Difficult abbreviation is present:Screen readers state abbreviations literally. Ch is not chapter, a screen reader says "chuh". Some abreviations like "gov", still work.;
+Language:Language, other than english, is present without proper code:Language must be programmatically determinable.;
+List:Handmade list is present. Should be made with list tool:Lists should only be made with a list tool, so assistive technologies can traverse them in helpful ways for students.;
+Link(URL):Exposed link is present:When links are exposed, they are read letter by letter, instead of word by word.;
+Link(long):Link text can be shortened to be more concise:Assistive Technology users can have a list of links read out loud. They should be able to know where the link leads without surrounding context.;
+Link(non--descriptive):Link text is not descriptive:Assistive Technology users can have a list of links read out loud. They should be able to know where the link leads without surrounding context.;
+Heading(skipped):Skipped heading is present:Assistive Technology users rely heavily on headings, they should be in order.;
+Heading(accidental):Regular sentence is tagged as a heading;
+Heading(list):Headings are styled as a hand made list;
