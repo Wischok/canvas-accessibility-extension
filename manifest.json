@@ -6,12 +6,12 @@
     "permissions": ["storage", "tabs", "webNavigation"],
     "host_permissions": ["https://*.instructure.com/*"],
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "assets/scripts/background.js"
     },
     "content_scripts": [
         {
             "matches": ["https://*.instructure.com/*"],
-            "js": ["contentScript.js"]
+            "js": ["assets/scripts/contentScript.js"]
         }
     ],
     "web_accessible_resources": [
