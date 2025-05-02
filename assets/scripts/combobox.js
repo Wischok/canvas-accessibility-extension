@@ -29,6 +29,9 @@ var SelectActions = {
     Type: 10,
 };
 
+// error types for dropdown
+const errorList = "All Caps:Extensive all caps are present:When all caps are present, screen readers state them like acronyms. Consider an entire sentence in all caps being stated LETTER BY LETTER.$Abbreviation:Difficult abbreviation is present:Screen readers state abbreviations literally. Ch is not chapter, a screen reader says (chuh). Some abreviations like (gov), still work.$Language:Language, other than english, is present without proper code:Language must be programmatically determinable.$List:Handmade list is present. Should be made with list tool:Lists should only be made with a list tool, so assistive technologies can traverse them in helpful ways for students.$Link(URL):Exposed link is present:When links are exposed, they are read letter by letter, instead of word by word.$Link(long):Link text can be shortened to be more concise:Assistive Technology users can have a list of links read out loud. They should be able to know where the link leads without surrounding context.$Link(non-descriptive):Link text is not descriptive:Assistive Technology users can have a list of links read out loud. They should be able to know where the link leads without surrounding context.$Heading(skipped):Skipped heading is present:Assistive Technology users rely heavily on headings, they should be in order.$Heading(accidental):Regular sentence is tagged as a heading:Headings should reflect information that is below them.$Heading(list):Headings are styled as a hand made list:Lists should only be made with a list tool, so assistive technologies can traverse them in helpful ways for students.$Heading(first level):A second Heading level 1 is present:There can only be one Heading level 1 on a webpage$PDF Present:[For Reviewer to Make Accessible]:PDFs need to be made accessible$Word Doc:[For Reviewer to Make Accessible]:Word docs need to be checked and made accessible$Powerpoint:[For Reviewer to Make Accessible]:Powerpoint docs need to be checked and made accessible$Doc:[For Reviewer to Make Accessible]:Docs need to be checked and made accessible$Image Alt-Text(insufficient):Image alt text is insufficient:Image alternate text needs to accurately describe the image based on context needed$Image Alt-Text(long):Image alt text is too long:Image alt text that is too long can prove to be more harmful than useful$Underline:Underlined text that is not a link is present:Using underline text for things outside of links can be confusing. It's best to keep the standard to links only$Table(headers):Table is missing headers:Headers are important for Assistive Technologies to be able to traverse them properly$Table(title):Table is missing a title or description:A title or description is required for a screen reader to be able to describe its purpose without the user having to go through the whole table$Invisible:Invisible element is present [For Aaron]:Assistive Technologies will discover the hidden elements, desipte them being invisible$Image(decorative):A decorative image has alt text:Additional alt text that isn't necessary can be fun. But too much, can prove to be more confusing and harmful than fun.$Blank line:Blank line(s) present:Screen readers detect blank lines (the empty space that happens when we hit 'enter'). When an empty one is detected, they'll read it outloud anyways, confusing the user.$Video(closed captioning):Video closed captioning is insufficient:Videos need proper closed captioning for users who are hard of hearing, or rely on them to help with understanding.$List(multi):A multi indented list is present:Multi-indented lists are read outloud. If indents are empty, it can be confusing for the user$Color Contrast:The noted text/image/video has insufficient color contrast:Text/images/videos need sufficient color contrast to be easily visible$Color as Meaning:Color as meaning is used:Color as meaning should never be the sole way to convey information. This is difficult for users who have trouble seeing color.$Link(invisible):Inivisble link is present:Invisible links are still detected by Assistive Technologies and should be removed.$Text Size:Text size is less that 10pt:The minimum requirement for text size is 10pt$Link(broken):Broken link is present:Broken links hinder proper navigation.$Audio only:There is only an audio present without transcript: all audio needs a proper transcript if information is conveyed.$Link(redundant):Redundant link is present:Multiple links to the same place can prove to be harmful and confusing.$Image Alt-Text(redundant):Image alt text is redundant compared to surrounding text: Image alt text should be unique to text outside.$";
+
 /*
     Helper Functions
 */
@@ -196,13 +199,14 @@ function Select (el) {//define as class
 
     //data
     this.idBase = this.comboEl.id || 'combo'; //short curcuit evaluation for 'combo' default
-    this.options = el.querySelectorAll('[role=option]');
+    this.options = new Array(errorList.split("$").length - 1);
 
     //state
     this.activeIndex = 0;
     this.open = false;
     this.searchString = '';
     this.searchTimeout = null;
+    this.count = 0;
 
     //init
     if(el && this.comboEl && this.listboxEl) {
@@ -211,36 +215,46 @@ function Select (el) {//define as class
 };
 
 Select.prototype.init = function() {
-    //select option that is already set as aria selected
-    this.options.forEach((el) => {
-        if(el.getAttribute('aria-selected') === 'true') {
-            this.comboEl.setAttribute('placeholder', el.innerHTML);
-        }
-    })
-
     //add event listeners
     this.comboEl.addEventListener('blur', this.onComboBlur.bind(this));
     this.listboxEl.addEventListener('focusout', this.onComboBlur.bind(this));
     this.comboEl.addEventListener('click', this.onComboClick.bind(this));
     this.comboEl.addEventListener('keydown', this.onComboKeyDown.bind(this))
 
-    //setup options
-    this.options.forEach((el) => {
-        this.setupOption(el)
+    //setup options / parse errors from list
+    const errors = errorList.split("$").sort();
+    this.comboEl.setAttribute('placeholder', errors[0].split(":")[0]);
+    errors.forEach((error) => {
+        this.setupOption(error.split(":"));
     });
 };
 
 //create and return Option Html element
-Select.prototype.setupOption = function (option) {
-    let index = indexOf(this.options, option);
+Select.prototype.setupOption = function (error) {
+    let index = this.count;
+    this.count++;
 
-    option.addEventListener('click', (event) => {
+    //create element
+    let el = document.createElement("div");
+    el.role = "option";
+    el.id = this.idBase + "-" + this.count;
+    el.classList.add("combo-option");
+    el.setAttribute("value", error[1]);
+    el.setAttribute("tooltip",error[2]);
+    el.innerHTML = error[0];
+
+    //set attribute to false unless first instance
+    (this.count === 1) ? el.setAttribute("aria-selected","true") : el.setAttribute("aria-selected","false");
+    
+
+    el.addEventListener('click', (event) => {
         event.stopPropagation();
         this.onOptionClick(index);
     });
-    option.addEventListener('mousedown', this.onOptionMouseDown.bind(this));
+    el.addEventListener('mousedown', this.onOptionMouseDown.bind(this));
 
-    return option;
+    this.listboxEl.appendChild(el);
+    this.options.push(el);
 };
 
 Select.prototype.getSearchString = function (char) {
@@ -278,7 +292,7 @@ Select.prototype.onComboClick = function (event) {
 
 Select.prototype.onComboKeyDown = function (event) {
     const {key} = event;
-    const max = this.options.length - 1;
+    const max = this.errorList.length - 1;
 
     const action = getActionFromKey(event, this.open);
 

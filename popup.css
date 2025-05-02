@@ -1,59 +1,80 @@
+body {
+    margin: 0;
+    padding: 0;
+    border: 3px solid black;
+    background-color: transparent;
+}
+
 .container {
-    width: 280px;
-    color: #314d3e;
+    min-width: calc(55ch + 2rem);
+    overflow: visible;
+    padding: 1rem;
+    box-sizing: border-box;
+    background: none;
+    border-radius: 7px;
 }
 
 .title {
-    font-size: 14px;
+    font-size: 20px;
     font-weight: bold;
     padding: 8px;
+    padding-left: 3px;
+    margin-bottom: 1rem;
 }
 
-.textbox {
+p {
+    font-size: 18px;
+    letter-spacing: 1px;
+    padding-left: 3px;
+}
+
+.error-instance {
+    margin-block: 1rem;
+}
+
+.error-instance input {
     width: 100%;
-    font-size: 12px;
-    margin: 0;
-    padding: 0px 2px;
+    border: 2px solid black;
+    border-radius: 7px;
+    height: 2rem;
+    padding-left: 1rem;
 }
 
-.textbox:focus {
-    outline: 0;
-    border-color: #66afe9;
+.submit {
+    font-size: 14px;
+    height: 2rem;
+    background: none;
+    border: 1px solid black;
+    border-radius: 7px;
+    padding-inline: 1.5rem;
+    background-color: black;
+    color: white;
+    transition: all 200ms ease-in-out;
 }
 
-.bookmarks {
-    margin: 5px 5px;
-    padding: 3px;
-}
-
-.bookmark {
-    display: flex;
-    border-bottom-color: #00254d;
-    border-bottom-width: 1px;
-    border-bottom-style: solid;
-    border-radius: 0.8rem;
-    padding: 3px;
-    padding-bottom: 7px;
-    margin-bottom: 7px;
-}
-
-.bookmark-title {
-    padding-left: 2px;
-}
-
-.bookmark-controls img {
-    margin: 0 4px;
-    width: 18px;
-    height: 18px;
+.submit:hover, .submit:focus {
+    background-color: white;
+    color: black;
     cursor: pointer;
 }
 
-.bookmark-controls {
-    flex: auto;
-    text-align: right;
+/* combobox styling */
+.field-wrapper {
+    margin-top: 2rem;
 }
 
-/* combobox styling */
+.label-wrapper {
+    font-size: 14px;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.input-wrapper {
+    display: flex;
+    position: relative;
+    flex-grow: 1;
+}
+
 .input-wrapper .combo {
     flex-grow: 1;
     min-width: 187px;
@@ -63,10 +84,10 @@
     font-family: "Quicksand", sans-serif;
     font-weight: 600;
     height: 2rem;
+    padding-left: 1rem;
     border-radius: 7px;
     display: flex;
     align-items: center;
-    padding-left: 1rem;
     border: #0d0d0d 2px solid;
     width: 100%;
 }
@@ -96,6 +117,9 @@
     z-index: 1;
     background-color: #e4e4e4;
     display: none;
+    max-height: 10rem;
+    overflow-y: scroll;
+    overflow-x: hidden;
 }
 
 .open .combo-menu {
@@ -106,6 +130,8 @@
     font-family: "Quicksand", sans-serif;
     padding: 12px 0 12px 1rem;
     cursor: pointer;
+    font-size: 14px;
+    outline: 1px solid rgb(178, 178, 178);
 }
 
 .combo-menu .combo-option:hover {
@@ -143,4 +169,70 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* error list */
+
+.errors {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0;
+    position: relative;
+}
+
+.errors li {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    height: 3rem;
+    max-width: 100%;
+    flex-grow: 1;
+    border-bottom: 2px solid black;
+}
+
+.errors * {
+    box-sizing: border-box;
+}
+
+.errors li button {
+    background: none;
+    width: 100%;
+    padding: 0;
+    background-color: transparent;
+    transition: all 200ms ease-in-out;
+    color: black;
+    border: none;
+}
+
+.errors li button:hover, .errors li button:focus {
+    background-color: rgb(28, 28, 82);
+    color: white;
+    cursor: pointer;
+}
+
+.errors li .name {
+    width: 23%;
+    max-width: 25%;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+}
+
+.errors li .desc {
+    width: 73%;
+    display: inline-block;
+    max-width: 75%;
+    padding: 0;
+    margin: 0;
+    border-left: 2px solid black;
+}
+
+.errors .tooltip {
+    width: 100%;
+    position:absolute;
+    bottom: -1.5rem;
+    padding: 5px;
+    display: none;
+    background-color: white;
 }

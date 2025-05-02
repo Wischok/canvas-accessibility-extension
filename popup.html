@@ -1,5 +1,7 @@
 <link href="popup.css" rel="stylesheet" type="text/css" />
-<!-- <script type="module" src="assets//scripts/popup.js"></script> -->
+<!-- <script type="module" src="https://github.com/Wischok/canvas-accessibility-extension/blob/e8860fee50e758cc33af27cb1110138a7fd18a80/assets/scripts/combobox.js"></script> -->
+<script type="module" src="/assets/scripts/combobox.js"></script>
+<!-- <script type="module" src="assets/scripts/popup.js"></script> -->
 
 <div class="container">
   <div>
@@ -7,36 +9,79 @@
     <p>Reviewer: Aaron Evans</p>
     <p>Instructor: </p>
     <p>Course ID: </p>
-    <div class="errors" id="errors"></div>
     <form class="new-error-controls">
       <!-- select error dropdown -->
       <div class="field-wrapper flex">
         <div class="label-wrapper">
-          <label for="seo_goal2" class="lbl" id="combo3-lbl">What's the Goal?<span aria-hidden="true">*</span></label>
+          <label for="seo_goal2" class="title" id="combo3-lbl">Add Error</label>
         </div>
         <div class="input-wrapper project-input-wrapper">
-          <div class="combo combo-standard combo3">
+          <div class="combo combo-standard combo3" id="combo1">
             <input class="combo-input" name="Error Type" id="error-type" role="combobox" tabindex="0"
               aria-label="Error Type Selection" type="text" aria-haspopup="listbox" aria-controls="listbox3" value=""
               placeholder="Error Instance Here" autocomplete="off" aria-expanded="false">
             <!-- Combo Menu | List of Options -->
             <div class="combo-menu" role="listbox" id="listbox3" aria-label="Error Type Selection Dropdown." tabindex="-1">
-              <div role="option" id="combo3-0" class="combo-option" aria-selected="true"
-              value="abbreviations are present"
-              >Abbreviation</div>
-              <div role="option" id="combo3-1" class="combo-option" aria-selected="false"
-              value=""
-              ></div>
+              
             </div>
           </div>
         </div>
       </div>
-      <div class="input-wrapper">
+      <div class="input-wrapper error-instance">
         <input type="text" name="error instance" id="new-error-desc" placeholder="error instance" required>
       </div>
-      <button type="submit">
-        submit
+      <button type="submit" class="submit">
+        Add Error
       </button>
     </form>
+    <div class="title" style="margin-top:2rem;margin-bottom: 7px;">Errors</div>
+    <ul class="errors" id="errors" title="List of Errors">
+      <li title="Accessibility Error. Click to display error." value="">
+        <button>
+          <div class="name">Link(URL)</div>
+          <div class="desc">The url to the link is exposed</div>
+          <div class="tooltip" aria-live="polite">
+            When links are exposed, they are read letter by letter, instead of word by word.
+          </div>
+        </button>
+      </li>
+      <li title="Accessibility Error. Click to display error." value="">
+        <button>
+          <div class="name">Link(URL)</div>
+          <div class="desc">The url to the link is exposed</div>
+          <div class="tooltip" aria-live="polite">
+            When links are exposed, they are read letter by letter, instead of word by word.
+          </div>
+        </button>
+      </li>
+      <li title="Accessibility Error. Click to display error." value="">
+        <button>
+          <div class="name">Link(URL)</div>
+          <div class="desc">The url to the link is exposed</div>
+          <div class="tooltip" aria-live="polite">
+            When links are exposed, they are read letter by letter, instead of word by word.
+          </div>
+        </button>
+      </li>
+      <li title="Accessibility Error. Click to display error." value="">
+        <button>
+          <div class="name">Link(URL)</div>
+          <div class="desc">The url to the link is exposed</div>
+          <div class="tooltip" aria-live="polite">
+            When links are exposed, they are read letter by letter, instead of word by word.
+          </div>
+        </button>
+      </li>
+      <li title="Accessibility Error. Click to display error." value="">
+        <button>
+          <div class="name">Link(URL)</div>
+          <div class="desc">The url to the link is exposed</div>
+          <div class="tooltip" aria-live="polite">
+            When links are exposed, they are read letter by letter, instead of word by word.
+          </div>
+        </button>
+      </li>
+    </ul>
   </div>
+  <button id="fix-all" class="submit">Fix All</button>
 </div>
