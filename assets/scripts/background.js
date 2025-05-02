@@ -1,6 +1,5 @@
+
 chrome.webNavigation.onCompleted.addListener((object) => {
-    console.log(object);
-    console.log(object.url)
     if (object.url && object.url.includes("instructure.com/courses")) {
         //example link https://mtsac.instructure.com/courses/154014/pages/the-biological-old-regime?module_item_id=7241230
         const urlParameters = object.url.split("courses")[1].split("/");
@@ -13,5 +12,5 @@ chrome.webNavigation.onCompleted.addListener((object) => {
             pageTitle: urlParameters[3].split("?")[0], //page title
             // moduleItemId: queryParameters.get("module_item_id"),//module item id
         })
-    }
+    }    
 })

@@ -185,7 +185,7 @@ p {
     display: flex;
     flex-direction: row;
     position: relative;
-    height: 3rem;
+    min-height: 3rem;
     max-width: 100%;
     flex-grow: 1;
     border-bottom: 2px solid black;

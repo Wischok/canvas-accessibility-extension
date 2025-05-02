@@ -199,7 +199,7 @@ function Select (el) {//define as class
 
     //data
     this.idBase = this.comboEl.id || 'combo'; //short curcuit evaluation for 'combo' default
-    this.options = new Array(errorList.split("$").length - 1);
+    this.options = new Array();
 
     //state
     this.activeIndex = 0;
@@ -249,7 +249,7 @@ Select.prototype.setupOption = function (error) {
 
     el.addEventListener('click', (event) => {
         event.stopPropagation();
-        this.onOptionClick(index);
+        this.onOptionClick(index--);
     });
     el.addEventListener('mousedown', this.onOptionMouseDown.bind(this));
 
@@ -390,10 +390,13 @@ Select.prototype.onOptionMouseDown = function () {
 Select.prototype.selectOption = function (index) {
     //update state
     this.activeIndex = index;
+    console.log(this.activeIndex);
 
     //update displayed value
     const selected = this.options[index];
-    this.comboEl.setAttribute('placeholder', selected.innerHTML );
+    console.log(this.options);
+    console.log(selected);
+    this.comboEl.setAttribute("placeholder", selected.innerHTML );
 
     //update aria-selected
     const options = this.el.querySelectorAll('[role=option]');
@@ -430,9 +433,12 @@ Select.prototype.updateMenuState = function (open, callFocus = true) {
 
 //init select
 window.addEventListener('load', function () {
-    const comboEls = document.querySelectorAll('.combo-standard');
-
-    comboEls.forEach((el) => {
-        new Select(el);
-    })
+    const combo = document.getElementById("combo1");
+    if(combo.classList.contains("init")) {
+        return;
+    }
+    else {
+        combo.classList.add("init");
+        new Select(combo);
+    }
 });
