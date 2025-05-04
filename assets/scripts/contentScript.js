@@ -25,17 +25,40 @@
         let doc = document.getElementById("application");
         if (doc) {
             doc.addEventListener("mouseup", () => {
-                const selection = window.getSelection();
-                console.log(selection.toString());
-                console.log(selection);
+                var selected = getSelection();
+                var range = selected.getRangeAt(0);
 
-                if (selection.toString().length < 1) {
-                    return;
+                console.log(range);
+                if (selected.toString().length > 1) {
+                    // var newNode = document.createElement("span");
+                    // newNode.setAttribute("class", "red");
+                    // range.surroundContents(newNode);
                 }
-
-                document.getElementById("new-error-desc").value = selection.toString();
+                // selected.removeAllRanges();                
             });
         }
+
+        
+        //display accessibility elements for aiding visual review
+        let styleEl = document.createElement('style');
+        styleEl.type = 'text/css';
+        styleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow}';
+        document.head.appendChild(styleEl);
+        
+        //add cursor console for adding errors
+        let consoleEl = document.createElement('style');
+        consoleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow}';
+        document.head.appendChild(consoleEl);
+
+        //look for empty p tags and mark them as error
+        let pTags = document.getElementById("content").querySelectorAll('p');
+        pTags.forEach((el) => {
+            if(el.innerHTML === "&nbsp;") {
+                el.classList.add("error-blank-line")
+            }
+        })
+
+        //look for all caps and mark them as error
     })
 
     const InitializeCourseSave = (courseID) => {
@@ -58,6 +81,16 @@
 
         //save attributes
         courseID = obj.courseId;
+
+        //add 'text highlighted' event
+        // document.addEventListener('mouseup', () => {
+        //     //if text is highlighted
+        //     const selection = window.getSelection();
+
+        //     if(selection.length < 0) {return;}
+
+        //     document.getElementById("new-error-desc").value = selection.toString();
+        // })
     }
 
     const addNewErrorEventHandler = () => {
@@ -94,6 +127,19 @@
     const isTextHighlighted = () => {
         const selection = window.getSelection();
         return selection.toString().length > 0;
+    }
+
+    const getSelection = () => {
+        var seltxt = '';
+         if (window.getSelection) { 
+             seltxt = window.getSelection(); 
+         } else if (document.getSelection) { 
+             seltxt = document.getSelection(); 
+         } else if (document.selection) { 
+             seltxt = document.selection.createRange().text; 
+         }
+        else return;
+        return seltxt;
     }
 })();
 
