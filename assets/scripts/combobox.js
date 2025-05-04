@@ -390,12 +390,9 @@ Select.prototype.onOptionMouseDown = function () {
 Select.prototype.selectOption = function (index) {
     //update state
     this.activeIndex = index;
-    console.log(this.activeIndex);
 
     //update displayed value
     const selected = this.options[index];
-    console.log(this.options);
-    console.log(selected);
     this.comboEl.setAttribute("placeholder", selected.innerHTML );
 
     //update aria-selected
