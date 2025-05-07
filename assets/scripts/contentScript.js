@@ -4,43 +4,47 @@
     let courseTitle = "";
     let reviewer = "Aaron Evans";
     let canvasLeftControls;
-    let currentErrors;
     const textLookUp = "#:~:text=";
-    let activeSelectionLookUpKey;
 
     // error types for dropdown
     const errorList = ("All Caps:Extensive all caps are present:When all caps are present, screen readers state them like acronyms. Consider an entire sentence in all caps being stated LETTER BY LETTER.$Abbreviation:Difficult abbreviation is present:Screen readers state abbreviations literally. Ch is not chapter, a screen reader says (chuh). Some abreviations like (gov), still work.$Language:Language, other than english, is present without proper code:Language must be programmatically determinable.$List:Handmade list is present. Should be made with list tool:Lists should only be made with a list tool, so assistive technologies can traverse them in helpful ways for students.$Link(URL):Exposed link is present:When links are exposed, they are read letter by letter, instead of word by word.$Link(long):Link text can be shortened to be more concise:Assistive Technology users can have a list of links read out loud. They should be able to know where the link leads without surrounding context.$Link(non-descriptive):Link text is not descriptive:Assistive Technology users can have a list of links read out loud. They should be able to know where the link leads without surrounding context.$Heading(skipped):Skipped heading is present:Assistive Technology users rely heavily on headings, they should be in order.$Heading(accidental):Regular sentence is tagged as a heading:Headings should reflect information that is below them.$Heading(list):Headings are styled as a hand made list:Lists should only be made with a list tool, so assistive technologies can traverse them in helpful ways for students.$Heading(first level):A second Heading level 1 is present:There can only be one Heading level 1 on a webpage$PDF Present:[For Reviewer to Make Accessible]:PDFs need to be made accessible$Word Doc:[For Reviewer to Make Accessible]:Word docs need to be checked and made accessible$Powerpoint:[For Reviewer to Make Accessible]:Powerpoint docs need to be checked and made accessible$Doc:[For Reviewer to Make Accessible]:Docs need to be checked and made accessible$Image Alt-Text(insufficient):Image alt text is insufficient:Image alternate text needs to accurately describe the image based on context needed$Image Alt-Text(long):Image alt text is too long:Image alt text that is too long can prove to be more harmful than useful$Underline:Underlined text that is not a link is present:Using underline text for things outside of links can be confusing. It's best to keep the standard to links only$Table(headers):Table is missing headers:Headers are important for Assistive Technologies to be able to traverse them properly$Table(title):Table is missing a title or description:A title or description is required for a screen reader to be able to describe its purpose without the user having to go through the whole table$Invisible:Invisible element is present [For Aaron]:Assistive Technologies will discover the hidden elements, desipte them being invisible$Image(decorative):A decorative image has alt text:Additional alt text that isn't necessary can be fun. But too much, can prove to be more confusing and harmful than fun.$Blank line:Blank line(s) present:Screen readers detect blank lines (the empty space that happens when we hit 'enter'). When an empty one is detected, they'll read it outloud anyways, confusing the user.$Video(closed captioning):Video closed captioning is insufficient:Videos need proper closed captioning for users who are hard of hearing, or rely on them to help with understanding.$List(multi):A multi indented list is present:Multi-indented lists are read outloud. If indents are empty, it can be confusing for the user$Color Contrast:The noted text/image/video has insufficient color contrast:Text/images/videos need sufficient color contrast to be easily visible$Color as Meaning:Color as meaning is used:Color as meaning should never be the sole way to convey information. This is difficult for users who have trouble seeing color.$Link(invisible):Inivisble link is present:Invisible links are still detected by Assistive Technologies and should be removed.$Text Size:Text size is less that 10pt:The minimum requirement for text size is 10pt$Link(broken):Broken link is present:Broken links hinder proper navigation.$Audio only:There is only an audio present without transcript: all audio needs a proper transcript if information is conveyed.$Link(redundant):Redundant link is present:Multiple links to the same place can prove to be harmful and confusing.$Image Alt-Text(redundant):Image alt text is redundant compared to surrounding text: Image alt text should be unique to text outside.$").split("$");
 
-    chrome.runtime.onMessage.addListener((request) => {
-        const {type, value, moduleItemId, pageTitle, pageType, courseId, url} = request;
+    chrome.runtime.onMessage.addListener(
+        function (request, sender, sendResponse) {
+            const { type, value, moduleItemId, pageTitle, pageType, courseId, url } = request;
 
-        console.log(type);
-
-        if (type === "NEW") {
-            currentItem = moduleItemId;
-            NewCoursePageLoaded(request);
-            return;
-        }
-        
-        if(type === "ADD-ERROR") {
-            //check for highlighted text
-            var selected = getSelection();
-            if (selected.toString().length > 1) {
-                console.log("something highlighted");
-                return Promise.resolve({ response: selected.toString().replaceAll(" ", "%20") });
+            //new page request
+            if (type === "NEW") {
+                currentItem = moduleItemId;
+                NewCoursePageLoaded(request);
+                return;
             }
-            else {
-                console.log("nothing highlighted");
-                return Promise.resolve({ response: "0" });
+
+            //add error request
+            if (type === "ADD-ERROR") {
+                //check for highlighted text
+                var selected = getSelection();
+                var range = selected.getRangeAt(0);
+                console.log(range);
+                console.log(selected);
+
+                if (selected.toString().length > 1) {
+                    sendResponse({ textLookUpKey: selected.toString().replaceAll(" ", "%20") });
+                }
+                else {
+                    sendResponse({ textLookUpKey: "null" });
+                }
+
+                return;
+            }
+
+            if (type === "SHOW-ERROR") {
+                console.log(url);
+                window.location.replace(url)
+                return;
             }
         }
-
-        if(type === "SHOW-ERROR") {
-            console.log(url);
-            window.location.replace(url)
-            return;
-        }
-    })
+    );
 
     const showError = () => {
 
@@ -71,8 +75,10 @@
                 var selected = getSelection();
                 var range = selected.getRangeAt(0);
 
+                //ignore if no text is highlighted
                 if (selected.toString().length > 1) {
-                    activeSelectionLookUpKey = selected.toString().replaceAll(" ", "%20");
+                    // let el = document.createElement("div");
+                    // el.classList.add('popup-add');
                 }
             });
         }
