@@ -69,9 +69,10 @@ function addError(urlEnd, url) {
     console.log(e.serialize());
 
     //find course
+    
 
     //find page
-
+    SaveError(e);
 
 
     // chrome.storage.local.get([e.courseId + "-" + ], 
@@ -84,7 +85,7 @@ function createErrorElement(error) {
 
     let btn = document.createElement('button');
     btn.classList.add("button1");
-    btn.addEventListener("click", () => {//show error function
+    btn.addEventListener("click", () => {//add show error function
         chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
             var currentUrl = tabs[0].url;
             if(currentUrl.includes("#:~:text=")) {
@@ -132,8 +133,57 @@ function createErrorElement(error) {
     return el;
 }
 
-function onError(error) {
-    console.error(`Error: ${error}`);
+function SaveError(e) {
+    chrome.storage.local.get ([e.courseId], (data) => {
+        var course;
+        if(data[e.courseId]) {//if course data already exists
+            course = JSON.parse(data[e.courseId]);
+        }
+        else {//else if course data doesn't exist
+            chrome.storage.local.set ()
+        }
+        var course = data[e.courseId] ? JSON.parse(data[e.courseId]) : console.log("course not created");
+    });
+}
+
+class Course {
+    constructor(courseId) {
+        this.modules = new Array();
+        this.count = 0;
+        this.id = courseId;
+    }
+
+    addError(error,moduleId,moduleItemId) {
+        this
+    }
+
+    addModule(module) {
+        this.modules.push(module);
+    }
+}
+
+class Module {
+    constructor(number) {
+        this.moduleItems = new Array();
+        this.count = 0;
+        this.id = number;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+}
+
+class ModuleItem {
+    constructor(id) {
+        this.errors = new Array();
+        this.count = 0;
+        this.id = id;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
 }
 
 class Page_Error {
@@ -147,7 +197,8 @@ class Page_Error {
       this.courseId = courseId;
       this.pageType = pageType;
       this.pageTitle = pageTitle;
-      this.pageId = pageId;
+      this.moduleItemId = pageId;
+      this.errorId;
     }
   
     serialize() {
@@ -165,6 +216,5 @@ function LoadErrors() {
 
 }
 
-function SaveError() {
+const equalTo = (element1, element2) => element1 === element2;
 
-}

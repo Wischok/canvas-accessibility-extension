@@ -25,11 +25,42 @@
                 //check for highlighted text
                 var selected = getSelection();
                 var range = selected.getRangeAt(0);
-                console.log(range);
-                console.log(selected);
 
-                if (selected.toString().length > 1) {
-                    sendResponse({ textLookUpKey: selected.toString().replaceAll(" ", "%20") });
+                //wrap around beginning and end of words
+                index = range.startOffset;
+                while(index > 0) {
+                    let temp = index - 1;
+                    if (range.commonAncestorContainer.nodeValue[temp] == " ") {
+                        range.setStart(range.commonAncestorContainer.parentNode.firstChild, index);
+                        break;
+                    }
+
+                    if(index < -9999) {
+                        alert("infinite loop");
+                        return;
+                    }
+
+
+                    index--;
+                }
+                index = range.endOffset;
+                while(index < range.commonAncestorContainer.nodeValue.length - 1) {
+                    let temp = index + 1;
+                    if(range.commonAncestorContainer.nodeValue[temp] == ' ') {
+                        range.setEnd(range.commonAncestorContainer.parentNode.firstChild, index + 1);
+                        break;
+                    }
+
+                    if(index > 9999) {
+                        alert("infinite loop");
+                        return;
+                    }
+
+                    index++;
+                }
+
+                if (range.toString().length > 1) {
+                    sendResponse({ textLookUpKey: range.toString().replaceAll(" ", "%20") });
                 }
                 else {
                     sendResponse({ textLookUpKey: "null" });
