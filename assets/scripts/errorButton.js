@@ -4,47 +4,140 @@ import {getActiveTabURL} from "./utils.js"
 const textLookUp = "#:~:text=";
 let queryOptions = { active: true, currentWindow: true };
 
-document.getElementById("add-error1").addEventListener("click" , (async () => {
-    //skip if error type is not selected
-    if(document.getElementById("error-type").getAttribute("value").length < 2) {
-        alert("no Error type selected");
-        return;
+class Course {   
+
+    constructor(courseId, modules = new Array(), count = 0) {
+        this.modules = modules;
+        this.count = count;
+        this.id = courseId;
     }
 
-    if(document.getElementById('module-input').value < 0 ) {
-        alert("no module # selected");
-        return;
+    addModule(module) {//add new module
+        this.count = this.modules.push(module);
+        console.log(this.modules);
+        return this.modules[this.count - 1];
     }
 
-    //grab url information
-    const activeTab = await getActiveTabURL();
-    const urlParameters = activeTab.url.split("courses")[1].split("/");
-    const url = {
-        courseId: urlParameters[1], 
-        pageType: urlParameters[2], 
-        pageTitle: urlParameters[3].split("?")[0],
-        pageId: urlParameters[3].split("=")[1]
-    };
-    if(!activeTab.url.includes("instructure.com/courses/")) {
-        return
+    getModule(moduleId) {
+        this.modules.forEach((mod) => {
+            if(mod.id === moduleId) {
+                return mod;
+            }
+        })
+
+        return -1;
     }
 
-    //grab textlookup key for highlighted text
-    let textLookUpKey;
-    (async () => {
-        const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-        const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR"});
-        // do something with response here, not outside the function
-        textLookUpKey = response.textLookUpKey;
+    serialize() {
+        return JSON.stringify(this);
+    }
 
-        //adderror
-        addError(textLookUpKey, url);
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Course(obj.id, obj.modules, obj.count);
+    }
+}
 
-        //update error counter
-        let count = parseInt(document.getElementById("error-counter").innerText);
-        document.getElementById("error-counter").innerHTML = count + 1;
-    })(); 
-}));
+class Module {
+
+    constructor(number, moduleItems = new Array(), count = 0) {
+        this.moduleItems = moduleItems;
+        this.count = count;
+        this.id = number;
+    }
+
+    addItem(item) {
+        this.count = this.moduleItems.push(item);
+        return this.moduleItems[this.count - 1];
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Module(obj.id, obj.moduleItems, obj.count);
+    }
+}
+
+class ModuleItem {
+
+    constructor(id, type, title, count = 0, errors = {}) {
+        this.errors = errors;
+        this.count = count;
+        this.id = id;
+        this.title = title;
+        this.type = type;
+    }
+
+    addError(e) {
+        let tempJSON = {};
+        //if errors exist
+        if(this.count > 0) {
+            tempJSON = JSON.parse(this.errors);
+        }
+
+        //if error exists on page already
+        if(tempJSON.hasOwnProperty(e.name)) {
+            tempJSON[e.name].push(e.serialize());
+        }
+        else {//if errror type doesn't exist
+            tempJSON[e.name] = [];
+            tempJSON[e.name].push(e.serialize());
+        }
+        
+        this.errors = JSON.stringify(tempJSON);
+        this.count++;
+    }
+
+    errorCountAll() {
+        return this.count;
+    }
+
+    errorCountSingle(name) {
+        const tempJSON = JSON.parse(this.errors);
+
+        //if specific errors exist
+        if(name in tempJSON) {
+            return tempJSON[name].length;
+        } else {//if error type not on page
+            return 0;
+        }
+    }
+
+    errorsList() {
+        return this.errors;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new ModuleItem(obj.id, obj.type, obj.title, obj.count, obj.errors);
+    }
+}
+
+class Page_Error {
+    constructor(name, desc, tooltip,htmlRef) 
+    {
+      this.name = name;
+      this.desc = desc;
+      this.tooltip = tooltip;
+      this.htmlRef = htmlRef;
+    }
+  
+    serialize() {
+      return JSON.stringify(this);
+    }
+  
+    static deserialize(serialized) {
+      const obj = JSON.parse(serialized);
+      return new Page_Error(obj.name, obj.desc, obj.tooltip, obj.htmlRef);
+    }
+}
 
 function addError(urlEnd, url) {
     //grab error information
@@ -58,27 +151,26 @@ function addError(urlEnd, url) {
     }
 
     //create error
-    let e = new Page_Error(selected.innerHTML,selected.getAttribute("value"),selected.getAttribute("tooltip"),urlEnd,url.courseId,url.pageType,url.pageTitle, url.pageId);
+    let e = new Page_Error(selected.innerHTML,selected.getAttribute("value"),
+    selected.getAttribute("tooltip"),urlEnd);
 
-    console.log(urlEnd);
+    let tempId = document.getElementById('module-input').value;
+    const saveInfo = {
+        courseId: url.courseId,
+        pageTitle: url.pageTitle,
+        moduleItemId: url.pageId,
+        moduleItemType: url.pageType,
+        moduleId: tempId,
+    }
 
-    document.getElementById("errors").appendChild(createErrorElement(e));
+    //add error to DOM
+    addErrorElementToDOM(e);
 
-    //save error to chrome tabs storage
-    
-    console.log(e.serialize());
-
-    //find course
-    
-
-    //find page
-    SaveError(e);
-
-
-    // chrome.storage.local.get([e.courseId + "-" + ], 
+    //save error to chrome tabs storage local
+    SaveError(e, saveInfo);
 };
 
-function createErrorElement(error) {
+function addErrorElementToDOM(error) {
     let el = document.createElement('li');
     el.setAttribute("htmlRef", error.htmlRef);
     el.setAttribute("title", "Accessibility Error. Click to display error.");
@@ -130,91 +222,109 @@ function createErrorElement(error) {
 
     el.appendChild(el3);
 
-    return el;
+    document.getElementById("errors").appendChild(el);
 }
 
-function SaveError(e) {
-    chrome.storage.local.get ([e.courseId], (data) => {
-        var course;
-        if(data[e.courseId]) {//if course data already exists
-            course = JSON.parse(data[e.courseId]);
-        }
-        else {//else if course data doesn't exist
-            chrome.storage.local.set ()
-        }
-        var course = data[e.courseId] ? JSON.parse(data[e.courseId]) : console.log("course not created");
-    });
+function SaveError(_e, saveInfo) {
+    var course;
+
+    try {
+        chrome.storage.local.get([_e.courseId], (data) => {
+            
+            if (data[_e.courseId]) {//if course data already exists
+                console.log("course found")
+
+                course = Course.deserialize(course);
+            }
+            else {//else if course data doesn't exist
+                console.log("course needs to be created");
+
+                course = CreateNewCourseData(_e, saveInfo);
+                chrome.storage.local.set({
+                    [course.id]: course.serialize(),
+                })
+            }
+        });
+    }
+    catch (e) {
+        console.log("course needs to be created");
+
+        course = CreateNewCourseData(_e, saveInfo);
+        chrome.storage.local.set({
+            [course.id]: course.serialize(),
+        })
+    };
+
+    console.log(course);
 }
 
-class Course {
-    constructor(courseId) {
-        this.modules = new Array();
-        this.count = 0;
-        this.id = courseId;
-    }
+function AddErrorToCourse(course) {
 
-    addError(error,moduleId,moduleItemId) {
-        this
-    }
-
-    addModule(module) {
-        this.modules.push(module);
-    }
 }
 
-class Module {
-    constructor(number) {
-        this.moduleItems = new Array();
-        this.count = 0;
-        this.id = number;
-    }
+function CreateNewCourseData(e, saveInfo) {
+    //create new course
+    let course = new Course(saveInfo.courseId);
 
-    serialize() {
-        return JSON.stringify(this);
-    }
-}
+    console.log(new Module(saveInfo.moduleId));
 
-class ModuleItem {
-    constructor(id) {
-        this.errors = new Array();
-        this.count = 0;
-        this.id = id;
-    }
+    //create new module
+    let module = course.addModule(new Module(saveInfo.moduleId));
 
-    serialize() {
-        return JSON.stringify(this);
-    }
-}
+    //create new module item
+    let moduleItem = module.addItem(new ModuleItem(saveInfo.moduleItemId,saveInfo.moduleItemType, saveInfo.pageTitle.replaceAll("-", " ")));
+    
+    console.log(moduleItem);
 
-class Page_Error {
-    constructor(name, desc, tooltip,htmlRef,courseId,
-        pageType,pageTitle, pageId) 
-    {
-      this.name = name;
-      this.desc = desc;
-      this.tooltip = tooltip;
-      this.htmlRef = htmlRef;
-      this.courseId = courseId;
-      this.pageType = pageType;
-      this.pageTitle = pageTitle;
-      this.moduleItemId = pageId;
-      this.errorId;
-    }
-  
-    serialize() {
-      return JSON.stringify(this);
-    }
-  
-    static deserialize(serialized) {
-      const obj = JSON.parse(serialized);
-      return new Page_Error(obj.name, obj.desc, obj.tooltip,
-        obj.htmlRef, obj.courseId, obj.pageType, obj.pageTitle);
-    }
+    //create new error
+    moduleItem.addError(e);
+
+    return course;
 }
 
 function LoadErrors() {
 
 }
 
-const equalTo = (element1, element2) => element1 === element2;
+document.getElementById("add-error1").addEventListener("click" , (async () => {
+    //skip if error type is not selected
+    if(document.getElementById("error-type").getAttribute("value").length < 2) {
+        alert("no Error type selected");
+        return;
+    }
+
+    if(document.getElementById('module-input').value < 0 ) {
+        alert("no module # selected");
+        return;
+    }
+
+    //grab url information
+    const activeTab = await getActiveTabURL();
+    const urlParameters = activeTab.url.split("courses")[1].split("/");
+    const url = {
+        courseId: urlParameters[1], 
+        pageType: urlParameters[2], 
+        pageTitle: urlParameters[3].split("?")[0],
+        pageId: urlParameters[3].split("=")[1]
+    };
+    if(!activeTab.url.includes("instructure.com/courses/")) {
+        return
+    }
+
+    //grab textlookup key for highlighted text
+    (async () => {
+        const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+        const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR"});
+        // do something with response here, not outside the function
+
+        //adderror
+        addError(response.textLookUpKey, url);
+
+        //update error counter
+        let count = parseInt(document.getElementById("error-counter").innerText);
+        document.getElementById("error-counter").innerHTML = count + 1;
+    })(); 
+}));
+
+
 

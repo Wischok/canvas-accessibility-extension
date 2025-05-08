@@ -310,3 +310,15 @@ button.delete {
     margin-top: 5px;
     position: relative;
 }
+
+.container:has(.no-show-message) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.no-show-message {
+    font-size: 20px;
+    text-align: center;
+    font-weight: 600;
+}
