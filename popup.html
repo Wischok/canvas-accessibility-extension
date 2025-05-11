@@ -2,10 +2,11 @@
 <!-- <script type="module" src="https://github.com/Wischok/canvas-accessibility-extension/blob/e8860fee50e758cc33af27cb1110138a7fd18a80/assets/scripts/combobox.js"></script> -->
 <script type="module" src="/assets/scripts/combobox.js"></script>
 <script type="module" src="/assets/scripts/onHighlight.js"></script>
-<script type="module" src="/assets/scripts/errorButton.js"></script>
-<!-- <script type="module" src="assets/scripts/popup.js"></script> -->
+<!-- <script type="module" src="/assets/scripts/errorButton.js"></script> -->
+<script type="module" src="assets/scripts/popup.js"></script>
+<script type="module" src="/assets/scripts/classes.js"></script>
 
-<div class="container" id="body">
+<div class="container no-display" id="container1">
   <div>
     <div class="title">Canvas Accessibility Tool</div>
     <p>Reviewer: Aaron Evans</p>
@@ -35,5 +36,22 @@
     <ol class="errors" id="errors" title="List of Errors">
     </ol>
   </div>
-  <button id="fix-all" class="submit">Fix All</button>
+  <div class="button-row">
+    <button id="fix-all" class="end-btn" title="Fix All"><img src="./assets/images/fix-icon.png" alt=""></button>
+    <button id="save" class="end-btn" title="Save HTML"><img src="./assets/images/save-icon.png" alt=""></button>
+    <button id="clear" class="end-btn" title="Clear Storage"><img src="./assets/images/clear-icon.png" alt=""></button>
+    <button id="generate" class="end-btn" title="Generate Report"><img src="./assets/images/generate-icon.png" alt=""></button>
+  </div>
+  
+</div>
+<div class="container no-display" id="container2">
+  <div>
+    <div class="title center">No Course Records Found</div>
+    <div class="center">
+      <button class="submit center" id="course-gen">Generate Course Records</button>
+    </div>
+  </div>
+</div>
+<div class="container" id="container3">
+  <div class="title center">Extension only operable<br> on Canvas LMS (within a Course)</div>
 </div>

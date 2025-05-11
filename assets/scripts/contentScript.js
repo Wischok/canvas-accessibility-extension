@@ -1,3 +1,5 @@
+
+
 (() => {
     let courseID = "";
     let profName = "";
@@ -18,6 +20,10 @@
                 currentItem = moduleItemId;
                 NewCoursePageLoaded(request);
                 return;
+            }
+
+            if(type === "NEW-PAGE") {//return module list items
+                sendResponse(JSON.stringify(document.getElementsByClassName("context_module")))
             }
 
             //add error request
@@ -73,6 +79,10 @@
                 console.log(url);
                 window.location.replace(url)
                 return;
+            }
+
+            if (type === "URL") {
+                sendResponse({url: window.location.href});
             }
         }
     );
@@ -133,20 +143,10 @@
             }
         })
 
-        //look for all caps and mark them as error
-
         //save attributes
         courseID = obj.courseId;
 
-        //add 'text highlighted' event
-        // document.addEventListener('mouseup', () => {
-        //     //if text is highlighted
-        //     const selection = window.getSelection();
 
-        //     if(selection.length < 0) {return;}
-
-        //     document.getElementById("new-error-desc").value = selection.toString();
-        // })
     }
 
     const addNewErrorEventHandler = () => {

@@ -22,6 +22,11 @@ body {
     margin-bottom: 1rem;
 }
 
+.title.center {
+    padding: 8px;
+    text-align: center;
+}
+
 p {
     font-size: 18px;
     letter-spacing: 1px;
@@ -40,6 +45,14 @@ p {
     padding-left: 1rem;
 }
 
+.button-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    gap: 5px;
+}
+
 .submit {
     font-size: 14px;
     height: 2rem;
@@ -51,6 +64,40 @@ p {
     color: white;
     transition: all 200ms ease-in-out;
     margin-top: 10px;
+}
+
+.end-btn {
+    height: 2.5rem;
+    width: 2.5rem;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 1.5rem;
+    background-color: black;
+    color: white;
+    transition: all 200ms ease-in-out;
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 200ms ease-in-out;
+}
+
+.end-btn:hover, .end-btn:focus {
+    background-color: white;
+    border-color: rgb(28, 28, 82);;
+    cursor: pointer;
+}
+
+.end-btn img {
+    height: 2rem;
+    width: 2rem;
+    filter: invert(1);
+    transition: all 200ms ease-in-out;
+}
+
+.end-btn:hover img {
+    filter: invert(0);
 }
 
 .submit:hover, .submit:focus {
@@ -186,7 +233,7 @@ p {
     display: flex;
     flex-direction: row;
     position: relative;
-    min-height: 3rem;
+    min-height: 2.5rem;
     max-width: 100%;
     flex-grow: 1;
     border-bottom: 2px solid black;
@@ -214,24 +261,12 @@ p {
 }
 
 .errors li .name {
-    width: 30%;
-    max-width: 25%;
-    display: inline-flex;
     margin: 0;
     padding: 0;
-    justify-content: center;
-    align-items: center;
-}
-
-.errors li .desc {
-    width: 65%;
-    display: inline-flex;
-    max-width: 75%;
-    padding: 0;
-    margin: 0;
-    border-left: 2px solid black;
-    justify-content: center;
-    align-items: center;
+    text-align: left;
+    padding-left: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 
 .errors .tooltip {
@@ -262,7 +297,7 @@ button.delete {
     height: 2rem;
     max-width: 2rem;
     position: absolute;
-    top: 20%;
+    top: 10%;
     aspect-ratio: 1 / 1;
     background-color: white !important;
     box-shadow: 0px 0px 15px -3px rgba(0,0,0,0.1);
@@ -321,4 +356,15 @@ button.delete {
     font-size: 20px;
     text-align: center;
     font-weight: 600;
+}
+
+.no-display {
+    display: none;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
 }
