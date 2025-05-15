@@ -1,10 +1,13 @@
 export class Course {   
 
-    constructor(courseId, modules = {}, moduleCount = 0, totalErrors = 0) {
+    constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
         this.modules = modules;
         this.moduleCount = moduleCount;
         this.id = courseId;
-        this.errorCount = totalErrors;
+        this.errorCount = errorCount;
+        this.version = version;
+        this.title = title
+        this.professorName = professorName
     }
 
     addModule(module) {//add new module
@@ -24,52 +27,114 @@ export class Course {
         return -1;
     }
 
-    getModule(moduleId) {
-        let _m;
+    gatherErrorCount() {
+        let count = 0
+        Object.keys(this.modules).forEach((key) => {
+            let m = Module.deserialize(this.modules[key]);
 
-        //check if module already saved. If so, fetch it
-        if(this.moduleExists(moduleId)) {
-            _m =  this.modules[moduleId];
-        }
+            Object.keys(m.moduleItems).forEach((key) => {
+                let i = ModuleItem.deserialize(m.moduleItems[key]);
 
-        //return module if found
-        if(_m != null && _m != undefined) {return Module.deserialize(_m);}
+                count += i.count;
+            })
+        })
 
-        //recursion | return new module if one not found
-        this.modules[moduleId] = new Module(moduleId).serialize();
-        return this.getModule(moduleId);
+        return count;
     }
 
-    moduleExists(moduleId) {
-        let condition = false;
-        Object.keys(this.modules).forEach(function(key) {
-            if(moduleId === key) {
-                condition = true;
-                return condition;
-            }
-        });
+    setProfName(name) {this.professorName = name; }
 
-        return condition;
+    modulesCheckedCount() {
+        let count = 0;
+        Object.keys(this.modules).forEach((key) => {
+            let m = Module.deserialize(this.modules[key]);
+
+            if(m.checked()) {
+                count++;
+            }
+        })
+
+        return count;
     }
 
     setModule(module) {
         this.modules[module.id] = module.serialize();
     }
 
-    addError(e, saveInfo) {
+    addError(e, pageId) {
         //returns desired module (or a new copy if it doesn't exist) as Module Item
-        let _module = this.getModule(saveInfo.moduleId);
-        _module.addError(e, saveInfo);
-        this.setModule(_module);
-        this.totalErrors++;
+        Object.keys(this.modules).forEach((key) => {
+            let module = Module.deserialize(this.modules[key]);
+
+            Object.keys(module.moduleItems).forEach((_key) => {
+                let item = ModuleItem.deserialize(module.moduleItems[_key]);
+
+                if(item.id = pageId) {
+                    item.addError(e);
+                    module.moduleItems[_key] = item.serialize();
+                    this.modules[key] = module.serialize();
+                }
+            })
+        });
+        this.totalErrors += 1;
+        console.log(this.totalErrors);
     }
 
     removeError(errorId, saveInfo) {
         //returns desired module (or a new copy if it doesn't exist) as Module Item
-        let _module = this.getModule(saveInfo.moduleId);
         _module.removeError(errorId, saveInfo);
         this.setModule(_module);
         this.totalErrors--;
+    }
+
+    fetchModuleItem(url) {
+        let moduleItem;
+        Object.keys(this.modules).forEach((key) => {
+            if(moduleItem != null && moduleItem != undefined) {return moduleItem; }
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((_key) => {
+                if(moduleItem != null && moduleItem != undefined) {return moduleItem; }
+                let i = ModuleItem.deserialize(m.moduleItems[_key]);
+
+                //check by module item id
+                if(url.includes(i.id)) {
+                    moduleItem = i;
+                }
+
+                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                if(url.includes(i.id2)) {
+                    moduleItem = i;
+                }
+            })
+        })
+
+        return moduleItem.serialize();
+    }
+
+    fetchModule(url) {
+        let module;
+        Object.keys(this.modules).forEach((key) => {
+            if(module != null && module != undefined) {return module; }
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((_key) => {
+                if(module != null && module != undefined) {return module; }
+                let i = ModuleItem.deserialize(m.moduleItems[_key]);
+
+                //check by module item id
+                if(url.includes(i.id)) {
+                    module = m;
+                }
+
+                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                if(url.includes(i.id2)) {
+                    module = m;
+                }
+            })
+        })
+
+        return module.serialize();
     }
 
     serialize() {//serialize course for JSON
@@ -78,18 +143,18 @@ export class Course {
 
     static deserialize(serialized) {
         const obj = JSON.parse(serialized);
-        return new Course(obj.id, obj.modules, obj.moduleCount, obj.totalErrors);
+        return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
     }
 }
-
 export class Module {
 
-    constructor(number, moduleItems = {}, count = 0) {
+    constructor(number, title, published = true, moduleItems = {}, count = 0) {
         this.moduleItems = moduleItems;
         this.count = count;
         this.id = number;
         this.errorCount;
-        this.title;
+        this.title = title;
+        this.published = published;
     }
 
     addItem(item) {
@@ -137,6 +202,20 @@ export class Module {
         return condition;
     }
 
+    checked() {
+        if (this.count < 1) { return false; }
+
+        let modules = this.moduleItems;
+        Object.keys(this.moduleItems).forEach(function (key) {
+            let item = ModuleItem.deserialize(modules[key]);
+            if (item.checked === false) {
+                return false;
+            }
+        })
+
+        return true;
+    }
+
     setModuleItem(moduleItem) {
         this.moduleItems[moduleItem.id] = moduleItem.serialize();
     }
@@ -147,21 +226,25 @@ export class Module {
 
     static deserialize(serialized) {
         const obj = JSON.parse(serialized);
-        return new Module(obj.id, obj.moduleItems, obj.count);
+        return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
     }
 }
-
 export class ModuleItem {
 
-    constructor(moduleId, id, type, title, count = 0, errors = {}) {
+    constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
         this.errors = errors;
         this.count = count;
         this.id = id;
-        this.url;
-        this.title = title;
+        this.url = url;
+        if(title === null) {
+            this.title = "Placeholder Title";
+        }
+        else {
+            this.title = title;
+        }
         this.type = type;
-        this.moduleId = moduleId;
-        this.errorCount;
+        this.checked = checked;
+        this.id2 = id2;
     }
 
     addError(e) {
@@ -176,21 +259,15 @@ export class ModuleItem {
         this.count++;
     }
 
-    removeError(errorId) {
+    removeError(error) {
         Object.keys(this.errors).forEach(function(key) {
-            let index = 0;
-            this.errors[key].forEach((error) => {
-                let _e = Page_Error.deserialize(error);
-
-                if(_e.id === errorId) {
-                    this.errors[key].splice(index, 1);
-                    return;
-                }
-                index++;
-            })
+            console.log(error.name + " " + key);
+            if(key === error.name) {
+                console.log(this.errors[key])
+                this.errors[key].splice(1,0);
+            }
         });
         this.count--;
-        console.log("found error");
     }
 
     findError(id) {
@@ -252,18 +329,15 @@ export class ModuleItem {
 
     static deserialize(serialized) {
         const obj = JSON.parse(serialized);
-        return new ModuleItem(obj.moduleId, obj.id, obj.type, obj.title, obj.count, obj.errors);
+        return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
     }
 }
-
 export class Page_Error {
-    constructor(name, desc, tooltip,htmlRef, id) 
+    constructor(name, htmlRef, required = false) 
     {
       this.name = name;
-      this.desc = desc;
-      this.tooltip = tooltip;
       this.htmlRef = htmlRef;
-      this.id = id;
+      this.required = required
     }
   
     serialize() {
@@ -271,7 +345,16 @@ export class Page_Error {
     }
   
     static deserialize(serialized) {
-      const obj = JSON.parse(serialized);
-      return new Page_Error(obj.name, obj.desc, obj.tooltip, obj.htmlRef, obj.id);
+        let obj;
+
+        //try and parse
+        try {
+            obj = JSON.parse(serialized);
+        }
+        catch {//if fail, serialize, then try and parse again
+            obj = JSON.parse(JSON.stringify(serialized));
+        }
+      
+      return new Page_Error(obj.name, obj.htmlRef, obj.required);
     }
 }

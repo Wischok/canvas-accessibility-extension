@@ -1,10 +1,13 @@
 import {getActiveTabURL} from "./utils.js";
 import { Course, Module, ModuleItem, Page_Error } from "./classes.js";
+import { initializeAccordion } from "./accordion.js";
 
 //declare values
 const textLookUp = "#:~:text=";
 let queryOptions = { active: true, currentWindow: true };
 let urlParameters = new Array();
+let fullURL;
+let _course, activePageId;
 
 // helpful functions
 function exists(obj) {return (obj != null && obj != undefined)}//check if element / object was successfuly retrieved
@@ -25,150 +28,266 @@ async function generateCourse() {
     //cancel course generation if not on course modules page
     if(!isOnModulesPage()) {alert("Course must be generated on Course 'Modules' Page."); return;}
 
-    //create course object with course Id
-    let _course = new Course(urlParameters[1]);
-
     //grab list of module elements
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    const moduleElements = await chrome.tabs.sendMessage(tab.id, {type: "NEW-PAGE"});
-    console.log(JSON.parse(moduleElements));
+    const course = await chrome.tabs.sendMessage(tab.id, {type: "GENERATE-COURSE"});
+    _course = Course.deserialize(course);
+
+    //save course
+    saveCourse(course);
+
+    displayCourse(Course.deserialize(course));
 }
 
-function addError(urlEnd, url) {
-    //grab error information
-    let errorElements = document.getElementsByClassName("combo-option");
-    let selected;
-    for(let i = 0; i < errorElements.length; i++) {
-        if(errorElements[i].getAttribute("aria-selected") === "true") {
-            selected = errorElements[i];
-            break;
-        }
-    }
+function displayCourse(course) {
+    //update relevant course information
+    document.getElementById("course-title").innerText = course.title;//course title
+    document.querySelectorAll(".prof-name")[0].value = course.professorName;//prof name
+    document.querySelectorAll(".prof-name")[1].value = course.professorName;//prof name
+    document.getElementById("total-errors-count").innerText = course.gatherErrorCount();//course error count
+    document.getElementById("total-modules-count").innerText = course.moduleCount;//course modules
+    document.getElementById("modules-checked-count").innerText = course.modulesCheckedCount();//course modules checked
 
-    //create error
-    let e = new Page_Error(selected.innerHTML,selected.getAttribute("value"),
-    selected.getAttribute("tooltip"),urlEnd, (url.courseId + url.pageId + uniqueId()));
+    //display modules and module pages
+    //create accordion modules and dropdowns for course
+    let index = 1;
+    Object.keys(course.modules).forEach((key) => {
+        let m = Module.deserialize(course.modules[key]);//grab module
 
-    let tempId = document.getElementById('module-input').value;
-    const saveInfo = {
-        courseId: url.courseId,
-        pageTitle: url.pageTitle,
-        moduleItemId: url.pageId,
-        moduleItemType: url.pageType,
-        moduleId: tempId,
-    }
-
-    //add error to DOM
-    addErrorElementToDOM(e);
-
-    //save error to chrome tabs storage local
-    SaveError(e, saveInfo);
-};
-
-function addErrorElementToDOM(error) {
-    let el = document.createElement('li');
-    el.setAttribute("htmlRef", error.htmlRef);
-    el.setAttribute("title", "Accessibility Error. Click to display error.");
-    el.setAttribute("id", error.id);
-
-    let btn = document.createElement('button');
-    btn.classList.add("button1");
-    btn.addEventListener("click", () => {//add show error function
-        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-            var currentUrl = tabs[0].url;
-            if(currentUrl.includes("#:~:text=")) {
-                currentUrl = currentUrl.split("#:~:text=")[0];
-            }
-            let text = currentUrl + "#:~:text=" + error.htmlRef;
-    
-            chrome.tabs.query(queryOptions, ([tab]) => {
-                chrome.tabs.sendMessage( tab.id, {
-                    type: "SHOW-ERROR",
-                    url: text,
-                })
-            });
-        });
+        //create DOM elements
+        createAccordionPair_Module(m, index);
+        index++;
     });
-    el.appendChild(btn);
 
-    let el2 = document.createElement('div');
-    el2.classList.add("name");
-    el2.innerText = error.name;
-    btn.appendChild(el2);
-
-    el2 = document.createElement('button');
-    el2.classList.add("delete");
-    el2.setAttribute("aria-label", "delete-error");
-    let el3 = document.createElement('img');
-    el3.setAttribute('alt', "");
-    el3.setAttribute("src", "assets/images/trash.png");
-    el2.appendChild(el3);
-    el2.addEventListener("click", removeError.bind(error.id));
-    btn.appendChild(el2);
-
-    el3 = document.createElement('div');
-    el3.classList.add('tooltip');
-    el3.setAttribute("aria-live", "polite");
-    el3.innerText = error.tooltip;
-
-    el.appendChild(el3);
-
-    document.getElementById("errors").appendChild(el);
+    //display the correct containers
+    document.getElementById('container4').classList.remove('no-display');
+    if(!document.getElementById('container1').classList.contains('no display')) {
+        document.getElementById('container1').classList.add('no-display');
+    }
+    if(!document.getElementById('container2').classList.contains('no display')) {
+        document.getElementById('container2').classList.add('no-display');
+    }
+    if(!document.getElementById('container3').classList.contains('no display')) {
+        document.getElementById('container3').classList.add('no-display');
+    }
 }
 
-async function SaveError(_e, saveInfo) {
-    let course;
-    await fetchCourse(saveInfo.courseId).then((result) => {
-        if(result === null || result === undefined) {
-            console.log("course needs to be created");
-            course = CreateNewCourseData(_e, saveInfo);
+function createAccordionPair_Module(module, index) {
+    //button / accordion heading
+    let head = document.createElement('div');
+    head.classList.add("head");
+
+    let button = document.createElement('button');
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", "sect" + index.toString());
+    button.id = "accordion" + index.toString();
+
+    let span = document.createElement('span');
+    span.classList.add("title");
+    if(module.title.length > 30) {
+        span.innerText = module.title.substring(0,30) + "...";
+    } else {
+        span.innerText = module.title;
+    }
+    
+    button.appendChild(span);
+
+    span = document.createElement('span');
+    span.classList.add("icon");
+    span.innerHTML = "<img src='/assets/images/caret-icon.png' alt=''>";
+    button.appendChild(span);
+
+    head.appendChild(button);
+    document.getElementById("accordion-group").appendChild(head);
+
+    //accordion content
+    let content = document.createElement('ul');
+    content.classList.add('content');
+    content.id = "sect" + index.toString();
+    content.setAttribute("role", 'region');
+    content.setAttribute('aria-labelledby', 'accordion' + index.toString());
+    document.getElementById('accordion-group').appendChild(content);
+
+    console.log(module.moduleItems);
+
+    //module pages
+    Object.keys(module.moduleItems).forEach((key) => {
+        let item = ModuleItem.deserialize(module.moduleItems[key]);
+
+        let li = document.createElement('li');
+        let link = document.createElement('a');
+        link.setAttribute('href', item.url);
+        link.setAttribute('title', 'Go to ' + item.title);
+        link.addEventListener("click", async () => {
+            //redirect page
+            const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+            const response = await chrome.tabs.sendMessage(tab.id, { type: "REDIRECT-PAGE", url: item.url });
+        });
+
+        let div = document.createElement('div');
+        div.classList.add('top-row');
+        if(item.title.length > 40) {
+            div.innerText = item.title.substring(0,40) + "...";
         }
         else {
-            course = result;
+            div.innerText = item.title;
         }
+        link.appendChild(div);
 
-        course.addError(_e, saveInfo);
-        chrome.storage.local.set({
-            [course.id]: course.serialize(),
-        })
-    });
+        div = document.createElement('div');
+        div.classList.add('bottom-row');
+        div.innerHTML = "<div class='error-count-wrapper'><span class='error-count'>" + item.count + "</span> errors</div>";
+        link.appendChild(div);
 
-    return course;
+        li.appendChild(link);
+        li.appendChild(document.createElement('hr'));
+        content.appendChild(li);
+    })
+    
+    //setup accordion javascript
+    initializeAccordion(head);
 }
 
-async function removeError(id) {
-    //grab url information
-    const activeTab = await getActiveTabURL();
-    const urlParameters = activeTab.url.split("courses")[1].split("/");
-    const url = {
-        courseId: urlParameters[1], 
-        pageType: urlParameters[2], 
-        pageTitle: urlParameters[3].split("?")[0],
-        pageId: urlParameters[3].split("=")[1].replaceAll("#:~:text", "")
-    };
+async function displayCoursePage() {
+    //grab textlookup key for highlighted text
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
+
+    //fetch (returns a copy object instance of a module item)
+    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(response.url.toString()));
+
+    document.querySelectorAll(".prof-name")[0].value = _course.professorName;//prof name
+    document.querySelectorAll(".prof-name")[1].value = _course.professorName;//prof name
+    document.getElementById("course-page").innerText = "Course Page: " + moduleItem.title;
+    document.getElementById('error-counter').innerText = moduleItem.count.toString();
+    document.getElementById('page-type').innerText = moduleItem.type;
+
+    //reset course page error accordion
+    document.getElementById('accordion-group-errors').innerHTML = "";
+
+    //iterate through error lists and display
+    let index = 1;
+    Object.keys(moduleItem.errors).forEach((key) => {
+        let list = moduleItem.errors[key];
+
+        //create DOM elements
+        createAccordionPair_ModuleItem(list, key, index);
+        index++;
+    })
+}
+
+function getPageId() {
+    //example url https://mtsac.instructure.com/courses/106139/modules/items/3168294
+    //example url https://mtsac.instructure.com/courses/106139/pages/how-to-navigate-this-course?module_item_id=3168295
+    if(fullURL.includes('module_item_id=')) {
+        let temp = fullURL.split('module_item_id=')[1];
+        if(temp.includes('#')) {//acount for textlookup string
+            temp = temp.split("#")[0];
+        }
+        
+        return temp;
+    }
+    else {
+        console.log('page missing module-item-id');
+        return fullURL;
+    }
+}
+
+function createAccordionPair_ModuleItem(list, key, index) {    
+    //button / accordion heading
+    let head = document.createElement('div');
+    head.classList.add("head");
+
+    let button = document.createElement('button');
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", "sect" + index.toString());
+    button.id = "accordion" + index.toString();
+
+    let span = document.createElement('span');
+    span.classList.add("title");
+    span.innerText = key + ": " + list.length.toString() + " instances";
     
-    let tempId = document.getElementById('module-input').value;
-    const saveInfo = {
-        courseId: url.courseId,
-        pageTitle: url.pageTitle,
-        moduleItemId: url.pageId,
-        moduleItemType: url.pageType,
-        moduleId: tempId,
+    button.appendChild(span);
+
+    span = document.createElement('span');
+    span.classList.add("icon");
+    span.innerHTML = "<img src='/assets/images/caret-icon.png' alt=''>";
+    button.appendChild(span);
+
+    head.appendChild(button);
+
+    //accordion content
+    let content = document.createElement('ul');
+    content.classList.add('content');
+    content.id = "sect" + index.toString();
+    content.setAttribute("role", 'region');
+    content.setAttribute('aria-labelledby', 'accordion' + index.toString());
+
+    list.forEach((error) => {
+        let e = Page_Error.deserialize(error);
+
+        let li = document.createElement('li');
+        let button2 = document.createElement('button');
+        button2.setAttribute('title', error.htmlRef != undefined ? error.htmlRef.replaceAll("%20", " ") : "Nothing to Show");
+        button2.classList.add('link');
+        button2.addEventListener("click", removeError.bind(this));
+
+        let div = document.createElement('div');
+        div.classList.add('top-row');
+        div.innerText = key;
+        button2.appendChild(div);
+
+        li.appendChild(button2);
+        li.appendChild(document.createElement('hr'));
+        content.appendChild(li);
+    })
+
+    //skip if no errors are present
+    if(list.length < 1) {
+        return;
     }
 
-    //remove error from course
-    await fetchCourse(url.courseId).then((result) => {
-        if (result === null || result === undefined) {
-            return;
-        } else {
-            result.removeError(id, saveInfo);
-            chrome.storage.local.set({
-                [url.courseId]: result.serialize(),
-            })
-        }
-        let num = parseInt(document.getElementById("error-counter").innerText)
-        document.getElementById("error-counter").innerText = num - 1;
+    //append head to error list parent
+    document.getElementById("accordion-group-errors").appendChild(head);
+    document.getElementById('accordion-group-errors').appendChild(content);
+
+    //setup accordion javascript
+    initializeAccordion(head);
+}
+
+function saveCourse(course) {
+    chrome.storage.local.set({
+        [Course.deserialize(course).id]: course,
     })
+}
+
+async function showError(error) {
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "SHOW-ERROR", url: error.htmlRef});
+}
+
+async function removeError(item) {
+    //grab url information
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
+
+    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
+    let module = Module.deserialize(_course.fetchModule(url.url.toString()));
+
+    //remove error from course
+    Object.keys(moduleItem.errors).forEach(function(key) {
+        if(key === item.srcElement.innerText) {
+            moduleItem.errors[key].pop();
+        }
+    });
+
+    moduleItem.count--;
+    module.setModuleItem(moduleItem)
+    _course.setModule(module);
+    _course.errorCount--;
+    
+    saveCourse(_course.serialize());
+    displayCoursePage();
 }
 
 function fetchCourse(id) {
@@ -179,41 +298,18 @@ function fetchCourse(id) {
     })
 }
 
-function uniqueId() {
-    const dateString = Date.now().toString(36);
-    const randomness = Math.random().toString(36).substr(2);
-    return dateString + randomness;
-};
+function findError() {
+    //grab error information
+    let errorElements = document.getElementsByClassName("combo-option");
+    let selected;
+    for(let i = 0; i < errorElements.length; i++) {
+        if(errorElements[i].getAttribute("aria-selected") === "true") {
+            selected = errorElements[i];
+            break;
+        }
+    }
 
-function CreateNewCourseData(e, saveInfo) {
-    //create new course
-    let course = new Course(saveInfo.courseId);
-
-    //create new module
-    let module = Module.deserialize(course.addModule(new Module(saveInfo.moduleId)));
-
-    //create new module item
-    let moduleItem = ModuleItem.deserialize(module.addItem(new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId,saveInfo.moduleItemType, saveInfo.pageTitle.replaceAll("-", " "))));
-
-    //create new error
-    moduleItem.addError(e);
-
-    return course;
-}
-
-function fetchErrors(course, moduleItemId) {
-    let result;
-
-    Object.keys(course.modules).forEach(function (key_i) {
-        let moduleItems = Module.deserialize(course.modules[key_i]).moduleItems;
-        Object.keys(moduleItems).forEach(function (key_k) {
-            if(moduleItemId === key_k) {
-                result = ModuleItem.deserialize(moduleItems[key_k]).errors;
-            }
-        });
-    });
-
-    return result;
+    return selected;
 }
 
 document.getElementById("add-error1").addEventListener("click" , (async () => {
@@ -223,37 +319,31 @@ document.getElementById("add-error1").addEventListener("click" , (async () => {
         return;
     }
 
-    if(document.getElementById('module-input').value < 0 ) {
-        alert("no module # selected");
-        return;
-    }
-
-    //grab url information
-    const activeTab = await getActiveTabURL();
-    const urlParameters = activeTab.url.split("courses")[1].split("/");
-    const url = {
-        courseId: urlParameters[1], 
-        pageType: urlParameters[2], 
-        pageTitle: urlParameters[3].split("?")[0],
-        pageId: urlParameters[3].split("=")[1].replaceAll("#:~:text", "")
-    };
-    if(!activeTab.url.includes("instructure.com/courses/")) {
-        return;
-    }
+    let selected = findError();
+    console.log(selected);
 
     //grab textlookup key for highlighted text
-    (async () => {
-        const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-        const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR"});
-        // do something with response here, not outside the function
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR"});
 
-        //adderror
-        addError(response.textLookUpKey, url);
+    //create error
+    let name = selected.innerText;
+    let key = "Nothing to Show";
+    // TO FIX <- error hrefs are broken
 
-        //update error counter
-        let count = parseInt(document.getElementById("error-counter").innerText);
-        document.getElementById("error-counter").innerHTML = count + 1;
-    })(); 
+    let e = new Page_Error(name, key);
+    const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
+
+    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
+    let module = Module.deserialize(_course.fetchModule(url.url.toString()));
+
+    moduleItem.addError(e);
+    module.setModuleItem(moduleItem)
+    _course.setModule(module);
+    _course.errorCount++;
+    
+    saveCourse(_course.serialize());
+    displayCoursePage();
 }));
 
 document.getElementById("save").addEventListener("click", async () => {
@@ -277,16 +367,48 @@ document.getElementById("save").addEventListener("click", async () => {
     console.log(JSON.stringify(document.getElementById("tinymce").innerHTML));
 });
 
+document.getElementById('fix-all').addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "AUDIT"});
+});
+
+document.getElementById('next-page').addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "NEXT"});
+});
+
 document.getElementById("course-gen").addEventListener("click", generateCourse.bind());
 
-window.addEventListener("load", async () => {
-    chrome.storage.local.clear();
+document.querySelectorAll(".prof-name").forEach((el) => {
+    el.addEventListener('change', () => {
+        if (_course != null && _course != undefined) {
+            _course.professorName = el.value;
+        }
+
+        saveCourse(_course.serialize());
+    })
+})
+
+async function pageSetup() {
+    //display the correct containers
+    document.getElementById('container3').classList.remove('no-display');
+    if(!document.getElementById('container1').classList.contains('no display')) {
+        document.getElementById('container1').classList.add('no-display');
+    }
+    if(!document.getElementById('container2').classList.contains('no display')) {
+        document.getElementById('container2').classList.add('no-display');
+    }
+    if(!document.getElementById('container4').classList.contains('no display')) {
+        document.getElementById('container4').classList.add('no-display');
+    }
+
+    // chrome.storage.local.clear();
     console.log(await chrome.storage.local.get());
     
     //grab url information
     const activeTab = await getActiveTabURL();
     urlParameters = activeTab.url.split("courses")[1].split("/");
-    console.log(urlParameters);
+    fullURL = activeTab.url;
 
     if(!exists(urlParameters)) {return;}//cancel out load in if parameters no retreived
 
@@ -300,35 +422,71 @@ window.addEventListener("load", async () => {
     //hide "extension only available within canvas" msg
     document.getElementById("container3").classList.add('no-display');
     
-    let course;//canvas course records
     //check if course records exist
-    await fetchCourse(urlParameters[1]).then((result) => {course = result; })
+    await fetchCourse(urlParameters[1]).then((result) => {_course = result; })//hold onto course records
 
-    //if nonexistant: display course generation button
-    if (course === null || course === undefined) {
+    //if course is nonexistant: display course generation button
+    if (_course === null || _course === undefined) {
         document.getElementById("container2").classList.remove("no-display");
         return;
     }
 
-    //if exits: display course records
+    //if on modules page, display course information
+    if(_course != null && _course != undefined && activeTab.url.includes("modules")) {
+        displayCourse(_course);
+        return;
+    }
+
+    //if course exits: display course page records
     document.getElementById("container1").classList.remove("no-display");
 
+    displayCoursePage();
 
-    //display errors
-    // await fetchCourse(url.courseId).then((result) => {
-    //     let count = 0;
-    //     if (result === null || result === undefined) {
-    //         return;
-    //     } else {
-    //         let errors = fetchErrors(result, url.pageId);
-    //         Object.keys(errors).forEach(function (key) {
-    //             errors[key].forEach((error) => {
-    //                 error = Page_Error.deserialize(error);
-    //                 addErrorElementToDOM(error);
-    //                 count++;
-    //             })
-    //         });
-    //     }
-    //     document.getElementById("error-counter").innerText = count;
-    // })
-})
+    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(activeTab.url.toString()));
+    let module = Module.deserialize(_course.fetchModule(activeTab.url.toString()));
+    if(!moduleItem.checked) {
+        moduleItem.checked = true;
+        
+
+        const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+        const response = await chrome.tabs.sendMessage(tab.id, {type: "AUDIT"});
+
+        console.log(response);
+        if (response != null) {
+            if (JSON.parse(response).length > 0) {
+                let errors = JSON.parse(response);
+
+                errors.forEach((error) => {
+                    moduleItem.addError(Page_Error.deserialize(error));
+                })
+            }
+        }
+
+        console.log(moduleItem);
+        module.setModuleItem(moduleItem)
+        _course.setModule(module);
+        _course.errorCount++;
+        saveCourse(_course.serialize());
+        displayCoursePage();
+    }
+}
+
+//event listener
+chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+    if (request.type === "NEW-PAGE-LOADED") {
+        pageSetup();
+    }
+
+    if(request.type === "PAGE-CHECKED") {
+        //grab textlookup key for highlighted text
+        const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+        const response = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
+
+        //fetch (returns a copy object instance of a module item)
+        let condition = ModuleItem.deserialize(_course.fetchModuleItem(response.url.toString())).checked;
+        sendResponse({checked: condition});
+    }
+});
+
+//setup page and extension on load
+window.addEventListener("load", pageSetup());

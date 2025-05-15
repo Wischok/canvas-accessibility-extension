@@ -8,8 +8,9 @@
 
 <div class="container no-display" id="container1">
   <div>
-    <div class="title">Canvas Accessibility Tool</div>
-    <p>Reviewer: Aaron Evans</p>
+    <div class="title title1" id="course-page">Course Page: </div>
+    <p class="page-type" id="page-type"></p>
+    <input class="input prof-name" type="text" placeholder="professor">
     <div class="new-error-controls" id="form1">
       <!-- select error dropdown -->
       <div class="field-wrapper flex">
@@ -26,15 +27,20 @@
             </div>
           </div>
         </div>
-        <input id="module-input" type="number" class="number-input" placeholder="Module #">
       </div>
-      <button class="submit" id="add-error1">
-        Add Error
-      </button>
+      <div class="row">
+        <button class="submit" id="add-error1">
+          Add Error
+        </button>
+        <button class="submit next" id="next-page">
+          Next Page
+        </button>
+      </div>
     </div>
     <div class="title" style="margin-top:2rem;margin-bottom: 7px;">Errors: <span id="error-counter">0</span> errors</div>
-    <ol class="errors" id="errors" title="List of Errors">
-    </ol>
+    
+    <div class="accordion" id="accordion-group-errors">
+    </div>
   </div>
   <div class="button-row">
     <button id="fix-all" class="end-btn" title="Fix All"><img src="./assets/images/fix-icon.png" alt=""></button>
@@ -54,4 +60,29 @@
 </div>
 <div class="container" id="container3">
   <div class="title center">Extension only operable<br> on Canvas LMS (within a Course)</div>
+</div>
+<div class="container no-display" id="container4">
+  <div>
+    <div class="title title2">Course: <span id="course-title"></span></div>
+    <input class="input prof-name" type="text" placeholder="professor">
+  </div>
+  <div class="row-3">
+    <div class="square">
+      <div class="number" id="total-errors-count">00</div>
+      <div class="text">Total<br>Errors</div>
+    </div>
+    <div class="square">
+      <div class="number" id="total-modules-count">00</div>
+      <div class="text">Total<br>Modules</div>
+    </div>
+    <div class="square">
+      <div class="number" id="modules-checked-count">00</div>
+      <div class="text">Modules<br>Checked</div>
+    </div>
+  </div>
+  <div>
+    <div class="title title2">Modules</div>
+  </div>
+  <div class="accordion" id="accordion-group">
+  </div>
 </div>

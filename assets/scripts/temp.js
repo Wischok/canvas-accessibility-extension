@@ -225,12 +225,7 @@
             this.count = count;
             this.id = id;
             this.url = url;
-            if(title === null) {
-                this.title = "Placeholder Title";
-            }
-            else {
-                this.title = title;
-            }
+            this.title = title;
             this.type = type;
             this.checked = checked;
             this.id2 = id2;
@@ -248,13 +243,18 @@
             this.count++;
         }
     
-        removeError(error) {
+        removeError(errorId) {
             Object.keys(this.errors).forEach(function(key) {
-                console.log(error.name + " " + key);
-                if(key === error.name) {
-                    console.log(this.errors[key])
-                    this.errors[key].splice(1,0);
-                }
+                let index = 0;
+                this.errors[key].forEach((error) => {
+                    let _e = Page_Error.deserialize(error);
+    
+                    if(_e.id === errorId) {
+                        this.errors[key].splice(index, 1);
+                        return;
+                    }
+                    index++;
+                })
             });
             this.count--;
         }
@@ -334,24 +334,14 @@
         }
       
         static deserialize(serialized) {
-            let obj;
-    
-            //try and parse
-            try {
-                obj = JSON.parse(serialized);
-            }
-            catch {//if fail, serialize, then try and parse again
-                obj = JSON.parse(JSON.stringify(serialized));
-            }
-          
+          const obj = JSON.parse(serialized);
           return new Page_Error(obj.name, obj.htmlRef, obj.required);
         }
     }
 
     //audit code
     const regexAbbreviation = /((?<![a-z])[a-z]{1,3}(\.|\/)([a-z]{1,1})?(\.|\/)?)|\bch\b|\bp\b|\bpp\b/idgm;
-    const regexListNo = /^(\()?\d{1,2}(\.|\)|\-){1,1}/gmd;
-    const regexListPart = /\bPart\s{1,2}\d\b/gmd;
+    const regexListNo = /^\d{1,2}\.\s{1,1}/gmd;
     const regexListHyphen = /^[-]{1,2}\s{1,1}/gmd;
     const regexAllCaps = /\b[A-Z\s\'\"\:]{7,}\b/gmd;
     const regexImageInsufficient = /\b(JPEG|GIF|PNG|TIFF|BMP|JPG)\b/igm;
@@ -359,7 +349,6 @@
     const regexDocument = /\b[\.]{1,1}((pdf|docx|doc|docm|dotx|dotm)[^com]?$)\b/i;//check a tags for href strings and compare them to rg
     const regexTextSize = /\bfont-size[\:\s]{1,}[^\d]\d{1,1}pt\b/d;
     const regexUnderline = /\btext-decoration[\:\s]{1,}underline\b/d;
-    const regexRepeatingChars = /(.)\1{9,}/igmd;
     //underline: check each span if has style attribute and if it has underline
     //alt text long: check alt text image string length
     //heading skipped: get a list of headings and check their numerical order
@@ -497,34 +486,12 @@
             if(el.hasAttribute(attribute)) {
                 if(el.getAttribute(attribute).match(regex)) {
                     foundIssues.push(el);
-                    el.classList.add('error-blank-line');
                 }
             }
         });
 
         //if issues found, return found issues or return -1 if none found
         return foundIssues.length > 0 ? foundIssues : -1;
-    }
-
-    //audit heading levels to see if levels are skipped
-    const auditHeadingLevel = (headingEls) => {
-        if(headingEls === null || headingEls === undefined) {return;}
-
-        if(headingEls.length < 2) {return; }
-
-        let headingsSkipped = new Array();
-        let prevLevel = 1;
-        headingEls.forEach((heading) => {
-            currLevel = parseInt(heading.tagName[1]);
-
-            if((currLevel - prevLevel) > 1) {
-                heading.classList.add('error-blank-line');
-                headingsSkipped.push(heading);
-            }
-        })
-
-        //if issues found, return found issues or return -1 if none found
-        return headingsSkipped.length > 0 ? headingsSkipped : -1;
     }
 
     //audit images for long alt text
@@ -658,126 +625,92 @@
             contentEl = document.querySelectorAll("#content div.user_content")[0];
         }
         else if(window.location.href.includes('quizzes')) {
-            contentEl = document.querySelectorAll('div.user_content')[0];
+            contentEl = document.querySelectorAll('header.quiz-header .row-fluid .description')[1];
         }
         else if(window.location.href.includes('discussion_topics')) {
-            contentEl = document.querySelectorAll('div.userMessage')[0];
+            contentEl = document.querySelectorAll('#module_sequence_footer_container div.userMessage')[0];
         }
         else {
             contentEl = document.querySelectorAll('#assignment_show div.description')[0];
         }
 
+        console.log(contentEl);
+
+        //display accessibility elements for aiding visual review
+        let styleEl = document.createElement('style');
+        styleEl.type = 'text/css';
+        styleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow}';
+        document.head.appendChild(styleEl);
+        
+        //add cursor console for adding errors
+        let consoleEl = document.createElement('style');
+        consoleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow}';
+        document.head.appendChild(consoleEl);
+
         /* check p tags */
         //grab paragraph tags in content
         let pTags = contentEl.querySelectorAll("p");
-        //grab images tags in content
-        let iTags = contentEl.querySelectorAll("img");
-        //grab link tags from content
-        let aTags = contentEl.querySelectorAll("a");
-        //grab all span tags in content
-        let sTags = contentEl.querySelectorAll("span");
-        //grab all heading tags in content
-        let hTags = contentEl.querySelectorAll("h1,h2,h3,h4,h5,h6");
-        // check underline elements
-        let uTags = contentEl.querySelectorAll('u');
-        //check list items
-        let lTags = contentEl.querySelectorAll('li');
-
-        if(uTags != null && uTags != undefined) {
-            if(uTags.length > 0) {
-                uTags.forEach((el) => {
-                    el.classList.add('error-blank-line');
-                    errors.push((new Page_Error("Underline", "none").serialize()));
-                })
-            }
-        }
-
-        pTags.forEach((el) => {
-            if(el.innerHTML === "&nbsp;") {
-                el.classList.add("error-blank-line");
-                errors.push((new Page_Error("Blank line", " ")).serialize());
-            }
-        })
 
         //check for abbreviations
         let abbreviations = auditRegexInstaces(pTags, regexAbbreviation);
-        console.log(abbreviations);
-        if (abbreviations != -1) {
+        if (abbreviations) {
             abbreviations.forEach((key) => {
-                errors.push((new Page_Error("Abbreviation", "none")).serialize());
-            });
-        }
-
-        //check for repeating characters
-        let repeatingChars = auditRegexInstaces(pTags, regexRepeatingChars)
-        if (repeatingChars != -1) {
-            repeatingChars.forEach((key) => {
-                errors.push((new Page_Error("Repeating Characters", "none")).serialize());
+                errors.push((new Page_Error("Abbreviation", key)).serialize());
             });
         }
 
         //check for handmade lists
         let handmadeLists_no = auditRegexInstaces(pTags, regexListNo);
-        console.log(handmadeLists_no);
-        if (handmadeLists_no != -1) {
+        if (handmadeLists_no) {
             handmadeLists_no.forEach((key) => {
-                errors.push((new Page_Error("List", "none")).serialize());
-            });
-        }
-        handmadeLists_no = auditRegexInstaces(pTags, regexListPart);
-        console.log(handmadeLists_no);
-        if (handmadeLists_no != -1) {
-            handmadeLists_no.forEach((key) => {
-                errors.push((new Page_Error("List", "none")).serialize());
+                errors.push((new Page_Error("List", key)).serialize());
             });
         }
 
         let handmadeLists_hyphen = auditRegexInstaces(pTags, regexListHyphen);
-        console.log(handmadeLists_hyphen);
-        if (handmadeLists_hyphen != -1) {
-            handmadeLists_hyphen.forEach((key) => {
-                errors.push((new Page_Error("List", "none")).serialize());
-            });
-        }
-        let listItems = auditRegexInstaces(lTags, regexAllCaps);
-        if (listItems != -1) {
-            listItems.forEach((key) => {
-                errors.push((new Page_Error("All Caps", "none")).serialize());
+        if (handmadeLists_hyphen) {
+            handmadeLists_no.forEach((key) => {
+                errors.push((new Page_Error("List", key)).serialize());
             });
         }
 
         //check for all caps
         let allCaps_p = auditRegexInstaces(pTags, regexAllCaps);
-        console.log(allCaps_p);
-        if(allCaps_p != -1) {
+        if(allCaps_p) {
             allCaps_p.forEach((key) => {
-                errors.push((new Page_Error("All Caps","none")).serialize());
+                errors.push((new Page_Error("All Caps",key)).serialize());
             });
         }
 
         /*check image tags */
+        //grab images tags in content
+        let iTags = contentEl.querySelectorAll("img");
+
         //check alt text length
         let longAltTextInstaces = auditImagesAltTextLong(iTags);
-        if(longAltTextInstaces != -1) {
+        if(longAltTextInstaces) {
             longAltTextInstaces.forEach((key) => {
-                errors.push((new Page_Error("Image Alt-Text(long)", "element")).serialize());
+                errors.push((new Page_Error("Image Alt-Text(long)", "")).serialize());
             });
         }
 
         //check if alt text is insufficient
         let insAltTextInstances = auditRegexElements(iTags, regexImageInsufficient, "alt");
-        if(insAltTextInstances != -1) {
+        if(insAltTextInstances) {
             insAltTextInstances.forEach((key) => {
-                errors.push((new Page_Error("Image Alt-Text(insufficient)", "element")).serialize());
+                errors.push((new Page_Error("Image Alt-Text(insufficient)", "")).serialize());
             });
         }
 
-        /* check links */        
+        /* check links */
+        //grab link tags from content
+        let aTags = contentEl.querySelectorAll("a");
+        
         //check for invisible links
         let invisibleLinks = auditGhostLinks(aTags);
-        if(invisibleLinks != -1) {
+        if(invisibleLinks) {
             invisibleLinks.forEach((key) => {
-                errors.push((new Page_Error("Link(invisible)", "element")).serialize());
+                errors.push((new Page_Error("Link(invisible)", "")).serialize());
             });
         }
 
@@ -785,9 +718,9 @@
 
         //check for documents
         let documents = auditRegexElements(aTags, regexDocument, "href");
-        if(documents != undefined && documents != null & documents != -1) {
+        if(documents) {
             documents.forEach((key) => {
-                errors.push((new Page_Error("Doc", "element")).serialize());
+                errors.push((new Page_Error("Doc", "")).serialize());
             });
         }
 
@@ -810,20 +743,23 @@
         //     });
         // }
 
-        /* check span tags */        
+        /* check span tags */
+        //grab all span tags in content
+        let sTags = contentEl.querySelectorAll("span");
+        
         //check for underline
         let underlinedElements = auditRegexElements(sTags, regexUnderline, "style");
-        if(underlinedElements != -1) {
+        if(underlinedElements) {
             underlinedElements.forEach((key) => {
-                errors.push((new Page_Error("Underline", "element")).serialize());
+                errors.push((new Page_Error("Underline", "")).serialize());
             });
         }
 
         //check for proper text size
         let smallText = auditRegexElements(sTags, regexTextSize, "style");
-        if(smallText != -1) {
+        if(smallText) {
             smallText.forEach((key) => {
-                errors.push((new Page_Error("Text Size", "element")).serialize());
+                errors.push((new Page_Error("Text Size", "")).serialize());
             });
         }
 
@@ -831,117 +767,27 @@
         //grab all tables and check for titles and headers
 
         /* check headings */
-        let headingLists = auditRegexInstaces(hTags, regexListNo);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("Heading(list)", "none")).serialize());
-            });
-        }
-        headingLists = auditRegexInstaces(hTags, regexListPart);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("Heading(list)", "none")).serialize());
-            });
-        }
-        headingLists = auditRegexInstaces(hTags, regexAllCaps);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("All Caps", "none")).serialize());
-            });
-        }
-        headingLists = auditHeadingLevel(hTags);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("Heading(skipped)", "none")).serialize());
-            });
-        }
-
-        
 
         pTags.forEach((pTag) => {
             pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-blank-line">');
             pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
         })
 
-        hTags.forEach((hTag) => {
-            hTag.innerHTML = hTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-blank-line">');
-            hTag.innerHTML = hTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
-        })
-
-        lTags.forEach((lTag) => {
-            lTag.innerHTML = lTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-blank-line">');
-            lTag.innerHTML = lTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
-        })
 
         return(errors);
     }
 
     const NewCoursePageLoaded = async () => {
-        let contentEl;
+        //run automated accessibility checker
 
-        //determine main content element based on page type
-        if(window.location.href.includes('pages')) {
-            contentEl = document.querySelectorAll("#content div.user_content")[0];
-        }
-        else if(window.location.href.includes('quizzes')) {
-            contentEl = document.querySelectorAll('div.user_content')[0];
-        }
-        else if(window.location.href.includes('discussion_topics')) {
-            contentEl = document.querySelectorAll('div.userMessage')[0];
-        }
-        else {
-            contentEl = document.querySelectorAll('#assignment_show div.description')[0];
-        }
-
-        console.log(contentEl);
-
-        //display accessibility elements for aiding visual review
-        let styleEl = document.createElement('style');
-        styleEl.type = 'text/css';
-        styleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow}';
-        document.head.appendChild(styleEl);
-        
-        //add cursor console for adding errors
-        let consoleEl = document.createElement('style');
-        consoleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow} h1 {position: relative; } h1::after {content: "h1"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h2 {position: relative; } h2::after {content: "h2"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h3 {position: relative; } h3::after {content: "h3"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h4 {position: relative; } h4::after {content: "h4"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h5 {position: relative; } h5::after {content: "h5"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h6 {position: relative; } h6::after {content: "h6"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} .image-block-alt-display-setup {position: relative; display: block;} .image-block-alt-display {position: absolute; padding-inline:1rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: start; align-items: center; text-align: start;}' ;
-        document.head.appendChild(consoleEl);
-
-        const addClass = (name) => {
-            let elements = contentEl.querySelectorAll(name);
-            if(elements != undefined && elements != null) {
-                if(elements.length > 0) {
-                    elements.forEach((el) => {
-                        el.classList.add("." + name);
-                    })
-                }
-            }
-        }
-
-        addClass('h1');
-        addClass('h2');
-        addClass('h3');
-        addClass('h4');
-        addClass('h5');
-        addClass('h6');
-
-        contentEl.querySelectorAll('p').forEach((el) => {
+        //look for empty p tags and mark them as error
+        let pTags = document.getElementById("content").querySelectorAll('p');
+        pTags.forEach((el) => {
             if(el.innerHTML === "&nbsp;") {
-                el.classList.add("error-blank-line");
+                el.classList.add("error-blank-line")
             }
         })
-
-        contentEl.querySelectorAll("img").forEach((el) => { 
-            el.parentElement.classList.add('image-block-alt-display-setup');
-            let alt = document.createElement('span');
-            alt.innerText = el.getAttribute('alt');
-            alt.classList.add('image-block-alt-display');
-            el.parentElement.appendChild(alt);
-        });
-
+        
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});
     }
 
@@ -1007,17 +853,11 @@
 
             if(type === "AUDIT") {
                 sendResponse(JSON.stringify(audit()));
-                return;
-            }
-
-            if(type === "NEXT") {
-                document.querySelectorAll('span.module-sequence-footer-button--next a')[0].click();
             }
 
             if(type === "GENERATE-COURSE") {//return module list items
                 let course = generateCourse();//generate course (return value is serialized)
                 sendResponse(course);
-                return;
             }
 
             //add error request
@@ -1025,16 +865,6 @@
                 //check for highlighted text
                 var selected = getSelection();
                 var range = selected.getRangeAt(0);
-
-                if(selected === null || selected === undefined) {
-                    sendResponse({ textLookUpKey: "none" });
-                    return;
-                }
-
-                if(selected.toString().length < 1) {
-                    sendResponse({ textLookUpKey: "none" });
-                    return;
-                }
 
                 //wrap around beginning and end of words
                 index = range.startOffset;
@@ -1073,7 +903,7 @@
                     sendResponse({ textLookUpKey: range.toString().replaceAll(" ", "%20") });
                 }
                 else {
-                    sendResponse({ textLookUpKey: "none" });
+                    sendResponse({ textLookUpKey: "null" });
                 }
 
                 return;
@@ -1096,3 +926,4 @@
         }
     );
 })();
+

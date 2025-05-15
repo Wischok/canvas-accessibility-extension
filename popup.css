@@ -22,6 +22,11 @@ body {
     margin-bottom: 1rem;
 }
 
+.title1 {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
 .title.center {
     padding: 8px;
     text-align: center;
@@ -31,6 +36,14 @@ p {
     font-size: 18px;
     letter-spacing: 1px;
     padding-left: 3px;
+}
+
+.page-type {
+    font-size: 14px;
+    margin-top: 7px;
+    padding-top: 0;
+    margin-bottom: 10px;
+    position: relative;
 }
 
 .error-instance {
@@ -367,4 +380,220 @@ button.delete {
     justify-content: center;
     align-items: center;
     width: 100%;
+}
+
+.row-3 {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 10px;
+    align-items: center;
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.row-3 .square {
+    width: 25%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.row-3 .square .number {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-align: center;
+    padding: 3px;
+    padding-inline: 5px;
+    background-color: rgb(212, 212, 212);
+    border-radius: 7px;
+    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.495);
+    -webkit-box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.495);
+    -moz-box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.495);
+}
+
+.row-3 .square .text {
+    letter-spacing: 1px;
+    font-size: 14px;
+    margin-top: 7px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.input {
+    width: 100%;
+    border: 2px solid black;
+    border-radius: 7px;
+    height: 2rem;
+    padding-left: 10px;
+    font-size: 14px;
+    background: none;
+}
+
+.title2 {
+    margin-bottom: 5px;
+}
+
+.accordion {
+    width: 100%;
+    border: 2px solid rgb(105, 105, 105);
+    border-radius: 7px;
+    position: relative;
+}
+
+.accordion .head {
+    width: 100%;
+    position: relative;
+    background-color: rgb(212, 212, 212);
+    padding-left: 5px;
+    box-sizing: border-box;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    transition: all 200ms ease-in-out;
+    border-bottom: 1px solid grey;
+    border-top: 1px solid gray;
+}
+
+.accordion:nth-child(1) {
+    border-top-right-radius: 7px;
+    border-top-left-radius: 7px;
+}
+
+.accordion:nth-child(n) {
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+}
+
+.accordion .head:hover {
+    background-color: rgb(174, 174, 174);
+}
+
+.accordion .content {
+    display: none;
+}
+
+.accordion .head:has(button[aria-expanded="true"]) + .content {
+    display: block;
+}
+
+.accordion .head .title {
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.accordion .head .icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    position: absolute;
+    right: 1rem;
+    top: .75rem;
+}
+
+.accordion .head:has(button[aria-expanded="true"]) .icon {
+    transform: rotate(180deg);
+}
+
+.accordion .head .icon img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.accordion .head button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+}
+
+.accordion ul {
+    list-style-type: none;
+    padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.accordion ul .top-row, .accordion ul .bottom-row {
+    padding-left: 1.5rem;
+}
+
+.accordion .content li {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.accordion .content li .top-row {
+    font-weight: 500;
+}
+
+.accordion .content li .bottom-row {
+    letter-spacing: 1px;
+}
+
+.accordion a, .accordion .link {
+    text-decoration: none;
+    color: black;
+    transition: all 200ms ease-in-out;
+    background: none;
+    background-color: white;
+    border: 1px solid transparent;
+    display: flex;
+    height: 100%;
+    padding-block: 10px;
+    box-sizing: border-box;
+    max-height: 3rem;
+    justify-content: center;
+    align-items: start;
+    flex-direction: column;
+}
+
+.accordion a:hover {
+    background-color: #b2d0e8;
+    border: 1px solid blue;
+}
+
+hr {
+    margin: 0;
+    padding: 0;
+}
+
+.row {
+    width: 100%;
+    display: flex;
+}
+
+.next {
+    margin-left: auto;
+}
+
+.h1:hover::after {
+    content: "h1";
+    position: absolute;
+    width: 3rem;
+    height: 2rem;
+    font-size: 15px;
+    background-color: black;
+    color: white;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.link {
+    cursor: pointer;
 }
