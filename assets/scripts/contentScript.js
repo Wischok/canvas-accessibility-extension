@@ -510,17 +510,17 @@
     const auditHeadingLevel = (headingEls) => {
         if(headingEls === null || headingEls === undefined) {return;}
 
-        if(headingEls.length < 2) {return; }
-
         let headingsSkipped = new Array();
         let prevLevel = 1;
         headingEls.forEach((heading) => {
-            currLevel = parseInt(heading.tagName[1]);
+            let currLevel = parseInt(heading.tagName[1]);
 
             if((currLevel - prevLevel) > 1) {
                 heading.classList.add('error-blank-line');
                 headingsSkipped.push(heading);
             }
+
+            prevLevel = currLevel;
         })
 
         //if issues found, return found issues or return -1 if none found
@@ -677,7 +677,8 @@
         //grab all span tags in content
         let sTags = contentEl.querySelectorAll("span");
         //grab all heading tags in content
-        let hTags = contentEl.querySelectorAll("h1,h2,h3,h4,h5,h6");
+        let hTags = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        console.log(hTags);
         // check underline elements
         let uTags = contentEl.querySelectorAll('u');
         //check list items
@@ -854,7 +855,7 @@
         }
         headingLists = auditHeadingLevel(hTags);
         console.log(headingLists);
-        if (headingLists != -1) {
+        if (headingLists != -1 && headingLists != null && headingLists != undefined) {
             headingLists.forEach((key) => {
                 errors.push((new Page_Error("Heading(skipped)", "none")).serialize());
             });
