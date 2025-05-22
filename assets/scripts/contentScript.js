@@ -664,7 +664,7 @@
     }
 
     //audit automations for page contents
-    const audit = () => {
+    const audit = async () => {
         let contentEl;
         let errors = new Array();
 
@@ -682,7 +682,9 @@
             contentEl = document.querySelectorAll('#assignment_show div.description')[0];
         }
 
-        /* check p tags */
+
+        /* DOM elements to audit */
+
         //grab paragraph tags in content
         let pTags = contentEl.querySelectorAll("p");
         //grab images tags in content
@@ -699,9 +701,27 @@
         //check list items
         let lTags = contentEl.querySelectorAll('li');
 
+
+        /* HTML Chunks to insert into DOM */
+
+        //HTML CHunks reference document; to query for needed chunks
+        const HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
+        const CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
+        
+
+        /* Load stylesheet into current document */
+
+        //create style el
+        let styleEl = document.createElement('style');
+        styleEl.type = 'text/css';
+        styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+        document.head.appendChild(styleEl);//append to head
+
+        
+        /* Automatic Audits for page document */
+        
         //new document elements needed for audit
         //const errorNode = generateErrorNode();
-
         if(uTags != null && uTags != undefined) {
             if(uTags.length > 0) {
                 uTags.forEach((el) => {
@@ -902,7 +922,7 @@
             
             _el.setAttribute('style', str);
 
-            addHTMLChunk('/assets/html-code-chunks/error-found.html');
+            // fetchHTMLChunk('https://github.com/Wischok/canvas-accessibility-extension/blob/2041a5d285ff389e04979519e5498a5533173045/assets/html-code-chunks/error-found.html');
             
             _el.querySelectorAll('.error-found-input').forEach((el) => {
                 let input = document.createElement('input');
@@ -1068,8 +1088,11 @@
     }
 
     //load in an html chunk
-    const addHTMLChunk = async (path) => {
-        fetch(path)
+    const fetchHTMLChunk = async (path) => {
+        //HTML chunk document
+        let document;
+
+        await fetch(path)
         .then(response => {
             //when page is loaded, convert to text
             return response.text();
@@ -1081,11 +1104,33 @@
             //parse the text
             const doc = parser.parseFromString(html, "text/html");
 
-            console.log(doc);
+            document = doc;
         })
         .catch(error => {
             console.error('failed ot fetch page: ', error);
         })
+
+        return document;
+    }
+
+    const fetchCSSChunk = async path => {
+        //CSS style sheet
+        let css;
+
+        await fetch(path)
+        .then(response => {
+            //when stylesheet is loaded, convert to text
+            return response.text();
+        })
+        .then(text => {
+            //return css text
+            css = text;
+        })
+        .catch(error => {
+            console.error('failed to fetch css: ', error);
+        })
+
+        return css;
     }
 
     const addNewErrorEventHandler = () => {
