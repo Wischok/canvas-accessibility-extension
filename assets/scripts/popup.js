@@ -359,11 +359,6 @@ document.getElementById("save").addEventListener("click", async () => {
     if(!activeTab.url.includes("instructure.com/courses/")) {
         return
     }
-
-    chrome.storage.local.set({
-        [url.courseId + url.pageId]: JSON.stringify(document.getElementById("tinymce").innerHTML)
-    })
-
     console.log(JSON.stringify(document.getElementById("tinymce").innerHTML));
 });
 

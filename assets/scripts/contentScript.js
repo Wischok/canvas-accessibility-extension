@@ -2,7 +2,7 @@
     let _errors = new Array();
     const textLookUp = "#:~:text=";
 
-    class Course {   
+    class Course {
 
         constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
             this.modules = modules;
@@ -13,52 +13,67 @@
             this.title = title
             this.professorName = professorName
         }
-    
+
         addModule(module) {//add new module
             this.moduleCount++;
             this.modules[module.id] = module.serialize();
             return this.modules[module.id];
         }
-    
+
         hasModule(moduleId) {
             this.modules.forEach((mod) => {
                 let m = Module.deserialize(mod);
-                if(m.id === moduleId) {
+                if (m.id === moduleId) {
                     return m;
                 }
             })
-    
+
             return -1;
         }
-    
-        setProfName(name) {this.professorName = name; }
-    
+
+        gatherErrorCount() {
+            let count = 0
+            Object.keys(this.modules).forEach((key) => {
+                let m = Module.deserialize(this.modules[key]);
+
+                Object.keys(m.moduleItems).forEach((key) => {
+                    let i = ModuleItem.deserialize(m.moduleItems[key]);
+
+                    count += i.count;
+                })
+            })
+
+            return count;
+        }
+
+        setProfName(name) { this.professorName = name; }
+
         modulesCheckedCount() {
             let count = 0;
             Object.keys(this.modules).forEach((key) => {
                 let m = Module.deserialize(this.modules[key]);
-    
-                if(m.checked()) {
+
+                if (m.checked()) {
                     count++;
                 }
             })
-    
+
             return count;
         }
-    
+
         setModule(module) {
             this.modules[module.id] = module.serialize();
         }
-    
+
         addError(e, pageId) {
             //returns desired module (or a new copy if it doesn't exist) as Module Item
             Object.keys(this.modules).forEach((key) => {
                 let module = Module.deserialize(this.modules[key]);
-    
+
                 Object.keys(module.moduleItems).forEach((_key) => {
                     let item = ModuleItem.deserialize(module.moduleItems[_key]);
-    
-                    if(item.id = pageId) {
+
+                    if (item.id = pageId) {
                         item.addError(e);
                         module.moduleItems[_key] = item.serialize();
                         this.modules[key] = module.serialize();
@@ -68,75 +83,75 @@
             this.totalErrors += 1;
             console.log(this.totalErrors);
         }
-    
+
         removeError(errorId, saveInfo) {
             //returns desired module (or a new copy if it doesn't exist) as Module Item
             _module.removeError(errorId, saveInfo);
             this.setModule(_module);
             this.totalErrors--;
         }
-    
+
         fetchModuleItem(url) {
             let moduleItem;
             Object.keys(this.modules).forEach((key) => {
-                if(moduleItem != null && moduleItem != undefined) {return moduleItem; }
+                if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
                 let m = Module.deserialize(this.modules[key]);
-    
+
                 Object.keys(m.moduleItems).forEach((_key) => {
-                    if(moduleItem != null && moduleItem != undefined) {return moduleItem; }
+                    if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
                     let i = ModuleItem.deserialize(m.moduleItems[_key]);
-    
+
                     //check by module item id
-                    if(url.includes(i.id)) {
+                    if (url.includes(i.id)) {
                         moduleItem = i;
                     }
-    
+
                     //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                    if(url.includes(i.id2)) {
+                    if (url.includes(i.id2)) {
                         moduleItem = i;
                     }
                 })
             })
-    
+
             return moduleItem.serialize();
         }
-    
+
         fetchModule(url) {
             let module;
             Object.keys(this.modules).forEach((key) => {
-                if(module != null && module != undefined) {return module; }
+                if (module != null && module != undefined) { return module; }
                 let m = Module.deserialize(this.modules[key]);
-    
+
                 Object.keys(m.moduleItems).forEach((_key) => {
-                    if(module != null && module != undefined) {return module; }
+                    if (module != null && module != undefined) { return module; }
                     let i = ModuleItem.deserialize(m.moduleItems[_key]);
-    
+
                     //check by module item id
-                    if(url.includes(i.id)) {
+                    if (url.includes(i.id)) {
                         module = m;
                     }
-    
+
                     //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                    if(url.includes(i.id2)) {
+                    if (url.includes(i.id2)) {
                         module = m;
                     }
                 })
             })
-    
+
             return module.serialize();
         }
-    
+
         serialize() {//serialize course for JSON
             return JSON.stringify(this);
         }
-    
+
         static deserialize(serialized) {
             const obj = JSON.parse(serialized);
             return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
         }
     }
     class Module {
-    
+
         constructor(number, title, published = true, moduleItems = {}, count = 0) {
             this.moduleItems = moduleItems;
             this.count = count;
@@ -145,55 +160,55 @@
             this.title = title;
             this.published = published;
         }
-    
+
         addItem(item) {
             this.count++;
             this.moduleItems[item.id] = item.serialize();
             return this.moduleItems[item.id];
         }
-    
+
         addError(e, saveInfo) {
             let item = this.getModuleItem(saveInfo);
             item.addError(e)
             this.setModuleItem(item);
         }
-    
+
         removeError(errorId, saveInfo) {
             let item = this.getModuleItem(saveInfo);
             item.removeError(errorId)
             this.setModuleItem(item);
         }
-    
+
         getModuleItem(saveInfo) {
             let _item;
-    
+
             //check if module Item already created
-            if(this.moduleItemExists(saveInfo.moduleItemId)) {
+            if (this.moduleItemExists(saveInfo.moduleItemId)) {
                 _item = this.moduleItems[saveInfo.moduleItemId];
             }
-    
-            if(_item != null && _item != undefined) {return ModuleItem.deserialize(_item); }
-    
+
+            if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
+
             //recursion | return new module if one not found
             this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
             return this.getModuleItem(saveInfo);
         }
-    
+
         moduleItemExists(moduleItemId) {
             let condition = false;
-            Object.keys(this.moduleItems).forEach(function(key) {
-                if(moduleItemId === key) {
+            Object.keys(this.moduleItems).forEach(function (key) {
+                if (moduleItemId === key) {
                     condition = true;
                     return condition;
                 }
             });
-    
+
             return condition;
         }
-    
+
         checked() {
             if (this.count < 1) { return false; }
-    
+
             let modules = this.moduleItems;
             Object.keys(this.moduleItems).forEach(function (key) {
                 let item = ModuleItem.deserialize(modules[key]);
@@ -201,31 +216,31 @@
                     return false;
                 }
             })
-    
+
             return true;
         }
-    
+
         setModuleItem(moduleItem) {
             this.moduleItems[moduleItem.id] = moduleItem.serialize();
         }
-    
+
         serialize() {
             return JSON.stringify(this);
         }
-    
+
         static deserialize(serialized) {
             const obj = JSON.parse(serialized);
             return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
         }
     }
     class ModuleItem {
-    
+
         constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
             this.errors = errors;
             this.count = count;
             this.id = id;
             this.url = url;
-            if(title === null) {
+            if (title === null) {
                 this.title = "Placeholder Title";
             }
             else {
@@ -235,10 +250,10 @@
             this.checked = checked;
             this.id2 = id2;
         }
-    
+
         addError(e) {
             //grab error or make a new one if needed
-            if(this.errorArrayExists(e)) {
+            if (this.errorArrayExists(e)) {
                 this.errors[e.name].push(e.serialize());
             }
             else {
@@ -247,95 +262,94 @@
             }
             this.count++;
         }
-    
+
         removeError(error) {
-            Object.keys(this.errors).forEach(function(key) {
+            Object.keys(this.errors).forEach(function (key) {
                 console.log(error.name + " " + key);
-                if(key === error.name) {
+                if (key === error.name) {
                     console.log(this.errors[key])
-                    this.errors[key].splice(1,0);
+                    this.errors[key].splice(1, 0);
                 }
             });
             this.count--;
         }
-    
+
         findError(id) {
             let _key, _index;
-            Object.keys(this.errors).forEach(function(key) {
-                let index= 0;
+            Object.keys(this.errors).forEach(function (key) {
+                let index = 0;
                 this.errors[key].forEach((error) => {
                     let e = Page_Error.deserialize(error);
-                    if(error.id === id) {
+                    if (error.id === id) {
                         _key = key;
                         _index = index;
                     }
                     index++;
                 })
             });
-    
+
             const respone = {
                 index: _index,
                 key: _key,
             }
-    
+
             return respone;
         }
-    
+
         errorArrayExists(e) {
             let condition = false;
-            Object.keys(this.errors).forEach(function(key) {
-                if(e.name === key) {
+            Object.keys(this.errors).forEach(function (key) {
+                if (e.name === key) {
                     condition = true;
                     return condition;
                 }
             });
-    
+
             return condition;
         }
-    
+
         errorCountAll() {
             return this.count;
         }
-    
+
         errorCountSingle(name) {
             const tempJSON = JSON.parse(this.errors);
-    
+
             //if specific errors exist
-            if(name in tempJSON) {
+            if (name in tempJSON) {
                 return tempJSON[name].length;
             } else {//if error type not on page
                 return 0;
             }
         }
-    
+
         errorsList() {
             return this.errors;
         }
-    
+
         serialize() {
             return JSON.stringify(this);
         }
-    
+
         static deserialize(serialized) {
             const obj = JSON.parse(serialized);
             return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
         }
     }
     class Page_Error {
-        constructor(name, htmlRef, required = false) 
-        {
-          this.name = name;
-          this.htmlRef = htmlRef;
-          this.required = required
+        constructor(name, htmlRef, required = false) {
+            this.name = name;
+            this.htmlRef = htmlRef;
+            this.required = required
         }
-      
+
         serialize() {
-          return JSON.stringify(this);
+            return JSON.stringify(this);
         }
-      
+
         static deserialize(serialized) {
             let obj;
-    
+
             //try and parse
             try {
                 obj = JSON.parse(serialized);
@@ -343,15 +357,15 @@
             catch {//if fail, serialize, then try and parse again
                 obj = JSON.parse(JSON.stringify(serialized));
             }
-          
-          return new Page_Error(obj.name, obj.htmlRef, obj.required);
+
+            return new Page_Error(obj.name, obj.htmlRef, obj.required);
         }
     }
 
     //audit code
     const regexAbbreviation = /((?<![a-z])[a-z]{1,3}(\.|\/)([a-z]{1,1})?(\.|\/)?)|\bch\b|\bp\b|\bpp\b/idgm;
     const regexListNo = /^(\()?\d{1,2}(\.|\)|\-){1,1}/gmd;
-    const regexListPart = /\bPart\s{1,2}\d\b/gmd;
+    const regexListPart = /^\bPart\s{1,2}\d\b/gmd;
     const regexListHyphen = /^[-]{1,2}\s{1,1}/gmd;
     const regexAllCaps = /\b[A-Z\s\'\"\:]{7,}\b/gmd;
     const regexImageInsufficient = /\b(JPEG|GIF|PNG|TIFF|BMP|JPG)\b/igm;
@@ -382,6 +396,7 @@
                 //record error text
                 foundIssues.push(buildLookUpText(match, regex.lastIndex));
 
+                //flags to swap out later with html
                 str += match.input.substr(lastIndex, match.index - lastIndex);
                 str += "$SPANTOCHANGE1$";
                 str += match.input.substr(match.index, regex.lastIndex - match.index);
@@ -684,6 +699,9 @@
         //check list items
         let lTags = contentEl.querySelectorAll('li');
 
+        //new document elements needed for audit
+        //const errorNode = generateErrorNode();
+
         if(uTags != null && uTags != undefined) {
             if(uTags.length > 0) {
                 uTags.forEach((el) => {
@@ -863,9 +881,45 @@
 
         
 
+        let pArr = new Array();
         pTags.forEach((pTag) => {
-            pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-blank-line">');
-            pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
+            if(pTag.innerHTML.includes("$SPANTOCHANGE1$")) {
+                pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-found-input">');
+                pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
+                pArr.push(pTag);
+            }
+        })
+
+        let count = 1;
+        pArr.forEach((_el) => {
+            let str;
+            if(_el.hasAttribute('style')) {
+                str = _el.getAttribute('style') + 'line-height: 2.3';
+            }
+            else {
+                str = 'line-height: 2.3';
+            }
+            
+            _el.setAttribute('style', str);
+
+            addHTMLChunk('/assets/html-code-chunks/error-found.html');
+            
+            _el.querySelectorAll('.error-found-input').forEach((el) => {
+                let input = document.createElement('input');
+                input.setAttribute('type', 'text');
+                let width = el.innerText.length;
+                // input.setAttribute("style", 'border: none; background: none; display: inline-block; margin: 0; width: ' + width + 'ch; box-shadow: none;');
+                input.setAttribute('value', el.innerText);
+                input.id = 'error-found-input-' + count;
+                count++;
+                input.addEventListener('keydown', UpdateInputWidth.bind(input.id));
+
+                el.innerText = "";
+                let remove = document.createElement('span');
+                remove.setAttribute('style', 'height: 1.5rem; width: 1.5rem; border-radius: 50%; background-color: #0650ac; position: absolute; right: 5px; top: .05rem;');
+                el.appendChild(input);
+                // el.appendChild(remove);
+            })
         })
 
         hTags.forEach((hTag) => {
@@ -879,6 +933,73 @@
         })
 
         return(errors);
+    }
+
+    //generate an error input node. Used to update errors found the auto audit
+    const generateErrorNode = () => {
+        //span wrapper
+        let span = document.createElement('span');
+        span.setAttribute('style', 'display: inline-flex;justify-content: start; align-items: center;');
+
+        //input element
+        let input = document.createElement('input');
+        input.setAttribute('type', 'text');
+        input.setAttribute("style", 'border: none; background: none; display: inline-block; margin: 0; width: ' + width + 'ch; box-shadow: none;');
+        input.addEventListener('keydown', UpdateInputWidth.bind());
+
+        //delete error button
+        let remove = document.createElement('span');
+        remove.setAttribute('style', 'height: 1.5rem; width: 1.5rem; border-radius: 50%; background-color: #0650ac; position: absolute; right: 5px; top: .05rem;');
+        // el.appendChild(remove);
+
+        /* set text editor pop up console */
+        //editor console
+        let editorConsole = document.createElement('div');
+        editorConsole.setAttribute('style', 'padding: 5px; border: 1px solid: rgb(161, 161, 161);')
+
+        //list parent for buttons
+        let listParent = document.createElement('ul');
+        listParent.setAttribute('title', 'Text editing buttons.');
+        listParent.setAttribute('style', 'display: flex; justify-content: space-between; align-items: center; ')//add styling
+
+        //list button element base to copy
+        let li = document.createElement('li');
+        li.appendChild(document.createElement('button'));
+        li.setAttribute('style', 'width: 1rem; height: 1rem; border-radius: 5px;')
+        li.children.item(0).setAttribute('style', '')//add styling
+
+        //button 1: text size up
+        let button1 = li.cloneNode(true);
+        button1.children.item(0).setAttribute('title', 'Increase Font Size');
+
+        //button 2: text size down
+        let button2 = li.cloneNode(true);
+        button2.children.item(0).setAttribute('title', 'Decrease Font Size');
+
+        //button 3: bold
+        let button3 = li.cloneNode(true);
+        button3.children.item(0).setAttribute('title', 'Bold')
+
+
+        //button 4: italics
+        let button4 = li.cloneNode(true);
+        button4.children.item(0).setAttribute('title', 'Italicize');
+
+        //button 5: highlight
+        let button5 = li.cloneNode(true);
+        button5.children.item(0).setAttribute('title', 'Text Highlight Color')
+
+        //build element
+        span.appendChild(input);
+
+        //on creation: update width && value
+        return span;
+    }
+
+    const UpdateInputWidth = (event) => {
+        if (event.srcElement.hasAttribute('style')) {
+            event.srcElement.style.width = event.srcElement.value.length.toString() + 'ch';
+        }
     }
 
     const NewCoursePageLoaded = async () => {
@@ -944,6 +1065,27 @@
         });
 
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});
+    }
+
+    //load in an html chunk
+    const addHTMLChunk = async (path) => {
+        fetch(path)
+        .then(response => {
+            //when page is loaded, convert to text
+            return response.text();
+        })
+        .then(html => {
+            //initialize DOM parser
+            const parser = new DOMParser();
+
+            //parse the text
+            const doc = parser.parseFromString(html, "text/html");
+
+            console.log(doc);
+        })
+        .catch(error => {
+            console.error('failed ot fetch page: ', error);
+        })
     }
 
     const addNewErrorEventHandler = () => {
