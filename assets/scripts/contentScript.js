@@ -683,6 +683,22 @@
         }
 
 
+        /* HTML Chunks to insert into DOM */
+
+        //HTML CHunks reference document; to query for needed chunks
+        const HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
+        const CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
+        
+
+        /* Load stylesheet into current document */
+
+        //create style el
+        let styleEl = document.createElement('style');
+        styleEl.type = 'text/css';
+        styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+        document.head.appendChild(styleEl);//append to head
+
+
         /* DOM elements to audit */
 
         //grab paragraph tags in content
@@ -701,22 +717,6 @@
         //check list items
         let lTags = contentEl.querySelectorAll('li');
 
-
-        /* HTML Chunks to insert into DOM */
-
-        //HTML CHunks reference document; to query for needed chunks
-        const HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
-        const CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
-        
-
-        /* Load stylesheet into current document */
-
-        //create style el
-        let styleEl = document.createElement('style');
-        styleEl.type = 'text/css';
-        styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
-        document.head.appendChild(styleEl);//append to head
-
         
         /* Automatic Audits for page document */
         
@@ -731,6 +731,7 @@
             }
         }
 
+        //audit paragraph tags
         pTags.forEach((el) => {
             if(el.innerHTML === "&nbsp;") {
                 el.classList.add("error-blank-line");
@@ -922,23 +923,24 @@
             
             _el.setAttribute('style', str);
 
-            // fetchHTMLChunk('https://github.com/Wischok/canvas-accessibility-extension/blob/2041a5d285ff389e04979519e5498a5533173045/assets/html-code-chunks/error-found.html');
-            
             _el.querySelectorAll('.error-found-input').forEach((el) => {
-                let input = document.createElement('input');
-                input.setAttribute('type', 'text');
-                let width = el.innerText.length;
-                // input.setAttribute("style", 'border: none; background: none; display: inline-block; margin: 0; width: ' + width + 'ch; box-shadow: none;');
-                input.setAttribute('value', el.innerText);
-                input.id = 'error-found-input-' + count;
-                count++;
+                //copy html chunk to replicate for each error
+                let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input').cloneNode(true);
+                
+                //grab input error from copied html chunk
+                let input = node.querySelector('input');
+                input.style.width = el.innerText.length.toString() + 'ch';//update width
+                input.setAttribute('value', el.innerText);//set input text
+                input.id = 'error-found-input-' + count;//create id
+                
+                //add event listener on type.
                 input.addEventListener('keydown', UpdateInputWidth.bind(input.id));
 
-                el.innerText = "";
-                let remove = document.createElement('span');
-                remove.setAttribute('style', 'height: 1.5rem; width: 1.5rem; border-radius: 50%; background-color: #0650ac; position: absolute; right: 5px; top: .05rem;');
-                el.appendChild(input);
-                // el.appendChild(remove);
+                //set html
+                el.replaceWith(node);
+
+                //add to counter
+                count++;
             })
         })
 

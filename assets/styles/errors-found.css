@@ -26,19 +26,22 @@
 .error-found-input .editor-console {
     display: none;
     position: absolute;
-    top: -100%;
+    top: -110%;
     left: 0;
 }
 
 .error-found-input .editor-console ul {
     display: flex;
     justify-content: space-between;
-    gap: 3px;
+    gap: 5px;
+    margin: 0;
+    background-color: white;
+    border: 2px solid rgb(138, 138, 138);
 }
 
 .error-found-input .editor-console ul li {
-    width: 1rem;
-    height: 1rem;
+    width: 1.2rem;
+    height: 1.2rem;
     border-radius: 3px;
 }
 
@@ -48,6 +51,7 @@
     width: 1rem;
     height: 1rem;
     border-radius: 3px;
+    padding: 0;
 }
 
 .error-found-input .editor-console ul li button:hover {
