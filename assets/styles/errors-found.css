@@ -23,7 +23,7 @@
     box-shadow: none;
 }
 
-.error-found-input.display .editor-console {
+.error-found-input:has(input.display) .editor-console {
     display: block;
 }
 

@@ -939,8 +939,8 @@
                 input.addEventListener('keydown', UpdateInputWidth.bind(input.id));
 
                 //add event listener to error node on focus and lose focus
-                node.addEventListener('focusin', ToggleDisplay.bind(node));
-                node.addEventListener('blur', ToggleDisplay.bind(node));
+                node.addEventListener('focusin', ToggleDisplay.bind());
+                node.addEventListener('focusout', ToggleDisplay.bind());
 
                 //set html
                 el.replaceWith(node);
@@ -970,13 +970,13 @@
     }
 
     //toggle error console display
-    const ToggleDisplay = (node) => {
-        console.log(node)
+    const ToggleDisplay = (event) => {
+        console.log(event)
         console.log('dispolay toggle');
-        if(node.classList.contains('display')) {
-            node.classList.remove('display');
+        if(event.srcElement.classList.contains('display')) {
+            event.srcElement.classList.remove('display');
         }else {
-            node.classList.add('display');
+            event.srcElement.classList.add('display');
         }
     }
 
