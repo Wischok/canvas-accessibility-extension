@@ -337,10 +337,12 @@
         }
     }
     class Page_Error {
-        constructor(name, htmlRef, required = false) {
+        constructor(name, htmlRef, required = false, startIndex, endIndex) {
             this.name = name;
             this.htmlRef = htmlRef;
-            this.required = required
+            this.required = required;
+            this.startIndex = startIndex;
+            this.endIndex = endIndex;
         }
 
         serialize() {
@@ -358,7 +360,7 @@
                 obj = JSON.parse(JSON.stringify(serialized));
             }
 
-            return new Page_Error(obj.name, obj.htmlRef, obj.required);
+            return new Page_Error(obj.name, obj.htmlRef, obj.required, obj.startIndex, obj.endIndex);
         }
     }
 
@@ -936,6 +938,10 @@
                 //add event listener on type.
                 input.addEventListener('keydown', UpdateInputWidth.bind(input.id));
 
+                //add event listener to error node on focus and lose focus
+                node.addEventListener('focusin', ToggleDisplay.bind(node));
+                node.addEventListener('blur', ToggleDisplay.bind(node));
+
                 //set html
                 el.replaceWith(node);
 
@@ -957,70 +963,20 @@
         return(errors);
     }
 
-    //generate an error input node. Used to update errors found the auto audit
-    const generateErrorNode = () => {
-        //span wrapper
-        let span = document.createElement('span');
-        span.setAttribute('style', 'display: inline-flex;justify-content: start; align-items: center;');
-
-        //input element
-        let input = document.createElement('input');
-        input.setAttribute('type', 'text');
-        input.setAttribute("style", 'border: none; background: none; display: inline-block; margin: 0; width: ' + width + 'ch; box-shadow: none;');
-        input.addEventListener('keydown', UpdateInputWidth.bind());
-
-        //delete error button
-        let remove = document.createElement('span');
-        remove.setAttribute('style', 'height: 1.5rem; width: 1.5rem; border-radius: 50%; background-color: #0650ac; position: absolute; right: 5px; top: .05rem;');
-        // el.appendChild(remove);
-
-        /* set text editor pop up console */
-        //editor console
-        let editorConsole = document.createElement('div');
-        editorConsole.setAttribute('style', 'padding: 5px; border: 1px solid: rgb(161, 161, 161);')
-
-        //list parent for buttons
-        let listParent = document.createElement('ul');
-        listParent.setAttribute('title', 'Text editing buttons.');
-        listParent.setAttribute('style', 'display: flex; justify-content: space-between; align-items: center; ')//add styling
-
-        //list button element base to copy
-        let li = document.createElement('li');
-        li.appendChild(document.createElement('button'));
-        li.setAttribute('style', 'width: 1rem; height: 1rem; border-radius: 5px;')
-        li.children.item(0).setAttribute('style', '')//add styling
-
-        //button 1: text size up
-        let button1 = li.cloneNode(true);
-        button1.children.item(0).setAttribute('title', 'Increase Font Size');
-
-        //button 2: text size down
-        let button2 = li.cloneNode(true);
-        button2.children.item(0).setAttribute('title', 'Decrease Font Size');
-
-        //button 3: bold
-        let button3 = li.cloneNode(true);
-        button3.children.item(0).setAttribute('title', 'Bold')
-
-
-        //button 4: italics
-        let button4 = li.cloneNode(true);
-        button4.children.item(0).setAttribute('title', 'Italicize');
-
-        //button 5: highlight
-        let button5 = li.cloneNode(true);
-        button5.children.item(0).setAttribute('title', 'Text Highlight Color')
-
-        //build element
-        span.appendChild(input);
-
-        //on creation: update width && value
-        return span;
-    }
-
     const UpdateInputWidth = (event) => {
         if (event.srcElement.hasAttribute('style')) {
             event.srcElement.style.width = event.srcElement.value.length.toString() + 'ch';
+        }
+    }
+
+    //toggle error console display
+    const ToggleDisplay = (node) => {
+        console.log(node)
+        console.log('dispolay toggle');
+        if(node.classList.contains('display')) {
+            node.classList.remove('display');
+        }else {
+            node.classList.add('display');
         }
     }
 
