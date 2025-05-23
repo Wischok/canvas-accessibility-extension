@@ -987,8 +987,6 @@
 
     //toggle error console display
     const ToggleDisplay = (event) => {
-        console.log(event)
-        console.log('dispolay toggle');
         if(event.srcElement.classList.contains('display')) {
             event.srcElement.classList.remove('display');
         }else {
