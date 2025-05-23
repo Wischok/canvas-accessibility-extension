@@ -938,9 +938,13 @@
                 //add event listener on type.
                 input.addEventListener('keydown', UpdateInputWidth.bind(input.id));
 
-                //add event listener to error node on focus and lose focus
+                //display editor console: add event listener to error node on focus and lose focus
                 node.addEventListener('focusin', ToggleDisplay.bind());
                 node.addEventListener('focusout', ToggleDisplay.bind());
+
+                //display editor console: add event listener to error node editor console on focus and lose focus
+                node.querySelector('.editor-console').addEventListener('focusin', ToggleDisplay.bind());
+                node.querySelector('.editor-console').addEventListener('focusout', ToggleDisplay.bind());
 
                 //add editor console event listeners
                 //bold

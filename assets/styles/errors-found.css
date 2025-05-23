@@ -26,7 +26,8 @@
 
 .error-found-input:has(input.display) .editor-console,
 .editor-console:has(button:focus),
-.editor-console.display {
+.editor-console.display,
+.editor-console:hover {
     display: block;
 }
 
