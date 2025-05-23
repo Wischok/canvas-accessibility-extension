@@ -946,21 +946,21 @@
                 node.querySelector('.editor-console').addEventListener('focusin', ToggleDisplay.bind());
                 node.querySelector('.editor-console').addEventListener('focusout', ToggleDisplay.bind());
 
-                //add editor console event listeners
+                //add editor console event listeners | pass in referenced input element id for updating
                 //bold
-                node.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(input))
+                node.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(this, input.id))
 
                 //italic
-                node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(input))
+                node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, input.id))
 
                 //increase font size
-                node.querySelector('#ec-increase-font').addEventListener('click', fontSizeIncrease.bind(input))
+                node.querySelector('#ec-increase-font').addEventListener('click', fontSizeIncrease.bind(this, input.id))
 
                 //decrease font size
-                node.querySelector('#ec-decrease-font').addEventListener('click', fontSizeDecrease.bind(input))
+                node.querySelector('#ec-decrease-font').addEventListener('click', fontSizeDecrease.bind(this, input.id))
 
                 //highlight
-                node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(input))
+                node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, input.id))
 
                 //set html
                 el.replaceWith(node);
@@ -998,33 +998,46 @@
         }
     }
 
-    const toggleBold = (event) => {
-        console.log(event);
+    //toggle bold class
+    const toggleBold = (id) => {
+        let el = document.getElementById(id);
 
-        return;
-        if(event.srcElement.style.getPropertyValue('font-weight') === 'normal' ||
-         event.srcElement.style.getPropertyValue('font-weight') === '400') {
-            event.srcElement.style.fontWeight = 'bold';
-        }
-        else {
-
+        if(el.classList.contains('bold')) {
+            el.classList.remove('bold')
+        }else {
+            el.classList.add('bold');
         }
     }
 
-    const toggleItalic = (event) => {
+    //toggle italic class
+    const toggleItalic = (id) => {
+        let el = document.getElementById(id);
+
+        if(el.classList.contains('italic')) {
+            el.classList.remove('italic')
+        }else {
+            el.classList.add('italic');
+        }
+    }
+
+    const fontSizeIncrease = (id) => {
+        let el = document.getElementById(id);
 
     }
 
-    const fontSizeIncrease = (event) => {
+    const fontSizeDecrease = (id) => {
+        let el = document.getElementById(id);
 
     }
 
-    const fontSizeDecrease = (event) => {
+    const toggleHighlight = (id) => {
+        let el = document.getElementById(id);
 
-    }
-
-    const toggleHighlight = (event) => {
-
+        if(el.classList.contains('highlight')) {
+            el.classList.remove('highlight')
+        }else {
+            el.classList.add('highlight');
+        }
     }
 
     const NewCoursePageLoaded = async () => {
