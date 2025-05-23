@@ -19,7 +19,7 @@
     background: none;
     display: inline-block;
     margin: 0;
-    width: 2ch;
+    min-width: 4ch;
     box-shadow: none;
     padding-block: 0;
 }
@@ -29,6 +29,10 @@
 .editor-console.display,
 .editor-console:hover {
     display: block;
+}
+
+.editor-console:hover {
+    background-color: blue;
 }
 
 .error-found-input .editor-console {
