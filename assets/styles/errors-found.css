@@ -23,6 +23,11 @@
     box-shadow: none;
 }
 
+.error-found-input:has(input:focus) .editor-console,
+.error-found-input .editor-console:focus {
+    display: block;
+}
+
 .error-found-input .editor-console {
     display: none;
     position: absolute;
