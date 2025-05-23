@@ -21,6 +21,7 @@
     margin: 0;
     width: 2ch;
     box-shadow: none;
+    padding-block: 0;
 }
 
 .error-found-input:has(input.display) .editor-console {
@@ -67,4 +68,16 @@
     height: 100%;
     width: 100%;
     object-fit: contain;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.highlight {
+    background-color: rgb(255, 255, 114);
+}
+
+.italic {
+    font-style: italic;
 }
