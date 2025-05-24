@@ -606,7 +606,7 @@
      * @param {Element} el the element being checked 
      * @param {RegExp} regex regex used to audit
      * @param {string} errorType type of error being checked for
-     * @returns a list containing all of the errors found
+     * @returns {Array<Page_Error>} a list containing errors found (serealized / JSON)
      */
     const auditRegexInstaces = (el, regex, errorType) => {
         let foundIssues = new Array();
@@ -632,21 +632,51 @@
         return foundIssues;
     }
 
-    const auditRegexElements = (elements, regex, attribute) => {
+    /**
+     * Audit an element's attribute for accessibility
+     * @param {Element} el 
+     * @param {RegExp} regex 
+     * @param {string} errorType 
+     * @param {Array<string>} attributes 
+     * @returns {Array<Page_Error>} a list containing errors found (serealized / JSON)
+     */
+    const auditRegexElement = (el, regex, errorType, attributes = new Array()) => {
         let foundIssues = new Array();
 
-        //iterate through instances and look for underline
-        elements.forEach((el) => {
+        //if empty attribute array, check entite outerHTML
+        if (attributes.length < 1) {
+            if (el.innerHTML.match(regex)) {
+                foundIssues.push(
+                    new Page_Error(
+                        errorType,
+                        buildNodePath(el),
+                    ).serialize()
+                );
+            }
+
+            return foundIssues;
+        }
+
+        //check each given expected attribute within element
+        attributes.forEach(attribute => {
+
+            //check if element has attribute before access
             if(el.hasAttribute(attribute)) {
+
+                //if issues found in attribute, save
                 if(el.getAttribute(attribute).match(regex)) {
-                    foundIssues.push(el);
-                    el.classList.add('error-blank-line');
+                    foundIssues.push(
+                        new Page_Error (
+                            errorType,
+                            buildNodePath(el),
+                        ).serialize()
+                    );
                 }
             }
-        });
+        })
 
-        //if issues found, return found issues or return -1 if none found
-        return foundIssues.length > 0 ? foundIssues : -1;
+        //return issues found
+        return foundIssues;
     }
 
     //audit heading levels to see if levels are skipped
@@ -668,42 +698,6 @@
 
         //if issues found, return found issues or return -1 if none found
         return headingsSkipped.length > 0 ? headingsSkipped : -1;
-    }
-
-    //audit images for long alt text
-    const auditImagesAltTextLong = (images) => {
-        let totalInstances = new Array();//found issues
-
-        //iterate through instances and look for underline
-        images.forEach((image) => {
-            if(image.hasAttribute("alt")) {
-                if(image.getAttribute("alt").length > 100) {
-                    totalInstances.push(image);
-                }
-            }
-        });
-
-        //if issues found, return found issues or return -1 if none found
-        return totalInstances.length > 0 ? totalInstances : -1;
-    }
-
-    //audit links for invisible links
-    const auditGhostLinks = (links) => {
-        let totalInstances = new Array();//found issues
-
-        //iterate through instances and look for underline
-        links.forEach((link) => {
-            if(link.innerText.length < 1) {
-                totalInstances.push(link);
-            }
-
-            else if (link.innerText.includes("Links to an external site.") && link.innerText.length < 28) {
-                totalInstances.push(link);
-            }
-        });
-
-        //if issues found, return found issues or return -1 if none found
-        return totalInstances.length > 0 ? totalInstances : -1;
     }
 
     //audit lists for multi indentations
@@ -728,6 +722,297 @@
 
         //if issues found, return found issues or return -1 if none found
         return totalInstances.length > 0 ? totalInstances : -1;
+    }
+
+    /* Audit by DOM element type / tag */
+
+    /**
+     * audit a list of paragraph elements for accessibility
+     * @param {Array<Element>} paragraphs list of paragraph elements from DOM
+     * @returns {Array<Page_Error>} a list of serialized (JSON) errors
+    */
+    const audit_paragraphs = (paragraphs) => {
+        let errorsFoundList = new Array();
+        
+        //iterate through each present p tag
+        paragraphs.forEach(p => {
+            //if an image element wrapped in a paragraph, skip
+            if(p.classList.contains('image-block-alt-display-setup')) {
+                return;
+            } else if (p.firstChild) {
+                try {
+                    if (p.firstChild.classList.contains('image-block-alt-display-setup')) {
+                        return;
+                    }
+                }
+                catch {}
+            }
+
+            //check for blank lines issue
+            if(p.innerHTML === '&nbsp;') {
+
+                //highlight p tag
+                p.classList.add('error-blank-line');
+
+                //add error
+                errorsFoundList.push(
+                    new Page_Error(//new error and parameters
+                        'Blank line',
+                        buildNodePath(p),
+                    ).serialize()//serialize error
+                );
+
+                //skip to next p tag
+                return;
+            }
+
+            //check for abbreviations
+            errorsFoundList.push(...auditRegexInstaces(p, regexAbbreviation, 'Abbreviation'));
+
+            //check for all caps
+            errorsFoundList.push(...auditRegexInstaces(p, regexAllCaps, 'All Caps'));
+
+            //check for repeating characters
+            errorsFoundList.push(...auditRegexInstaces(p, regexRepeatingChars, 'Repeating Characters'));
+
+            //check for handmade lists
+            errorsFoundList.push(...auditRegexInstaces(p, regexListNo, 'List(handmade)'));//numbered
+            errorsFoundList.push(...auditRegexInstaces(p, regexListHyphen, 'List(handmade)'));//hyphened
+            errorsFoundList.push(...auditRegexInstaces(p, regexListPart, 'List(handmade)'));//'part' list
+        })
+        
+        return errorsFoundList;
+    }
+
+    /**
+     * audit a list of span elements for accessibility
+     * @param {Array<Element>} spans a list of span elements from the DOM
+     * @returns {Array<Page_Error>} a list of serialized (JSON) errors
+    */
+    const audit_spans = (spans) => {
+        let errorsFoundList = new Array();
+
+        //iterate through each span tag
+        spans.forEach(span => {
+
+            //skip if span was placed by audit algorithm
+            if(span.classList.contains('image-block-alt-display-setup')) {
+                return;
+            }
+
+            //skip if span has no text
+            if(span.innerText.length < 1) {
+                return;
+            }
+
+            //check for underline
+            errorsFoundList.push(...auditRegexElement(span, regexUnderline, 'Underline', ['style']));
+
+            //check for small font
+            errorsFoundList.push(...auditRegexElement(span, regexTextSize, 'Text Size', ['style']));
+        });
+
+        return errorsFoundList;
+    }
+
+    /**
+     * audit a list of link (a) tags for accessibility
+     * @param {Array<Element>} links a list of a elements from the DOM
+     * @returns {Array<Page_Error>} a list of serialized (JSON) errors
+    */
+    const audit_links = (links) => {
+        let errorsFoundList = new Array();
+
+        //iterate through each link (a) tag
+        links.forEach(a => {
+
+            //skip if a read speaker link
+            if(a.classList.contains('rspkr_dr_link')) {
+                return;
+            }
+
+            //check if invisible link
+            if(a.innerText.length < 1) {
+                errorsFoundList.push(
+                    new Page_Error(
+                        'Link(invisible)',
+                        buildNodePath(a)
+                    ).serialize()
+                )
+
+                //skip checking for other errors if link is invisible
+                return;
+            }
+
+            //check if visible URL
+            errorsFoundList.push(...auditRegexElement(a, regexLinkURL, 'Link(invisible)'));
+        })
+
+        return errorsFoundList;
+    }
+
+    /**
+     * audit a list of img elements for accessibility
+     * @param {Array<Element>} images a list of image elements from the DOM
+     * @returns {Array<Page_Error>} a list of serialized (JSON) errors
+     */
+    const audit_img = (images) => {
+        let errorsFoundList = new Array();
+
+        //iterate through each img tag
+        images.forEach(img => {
+
+            //check if alt text is too long
+            if(img.hasAttribute("alt")) {
+                if(img.getAttribute("alt").length > 100) {
+                    errorsFoundList.push(
+                        new Page_Error(
+                            'Image Alt-Text(long)',
+                            buildNodePath(img),
+                        ).serialize()
+                    )
+                }
+            }
+
+            //check if alt text is insufficient 
+            errorsFoundList.push(...auditRegexElement(img, regexImageInsufficient, 'Image Alt-Text(insufficient)', ['alt']))
+        });
+
+        return errorsFoundList;
+    }
+
+    /**
+     * audit a list of heading elements for accessibility
+     * @param {Array<Element>} headings a list of heading elements from the DOM
+     * @returns {Array<Page_Error>} a list of serialized (JSON) errors
+     */
+    const audit_headings = (headings) => {
+        let errorsFoundList = new Array();
+        
+        //check for repeating heading levels
+        //default: multiple heading level 1's
+        let count = 0;//count of instances found
+        for (let i = 0; i < headings.length; i++) {
+
+            //if desired instance found, add to count
+            if (headings[i].tagName === 'h1') {
+                count++;
+
+                //if count has exceeded 1, add error
+                if (count < 1) {
+                    errorsFoundList.push(
+                        new Page_Error(
+                            'Heading(first level)',
+                            buildNodePath(headings[i]),
+                        ).serialize()
+                    );
+                }
+            }
+        }
+
+        //keep track of previous heading level to check
+        //for skips
+        let prevLevel = 1;//default (heading 1)
+        headings.forEach(h => {//iterate through headings
+            //check if skipped heading
+            let currLevel = parseInt(h.tagName[1]);//heading level (int)
+
+            //if heading level is skipped
+            if((currLevel - prevLevel) > 1) {
+                errorsFoundList.push(
+                    new Page_Error(
+                        'Heading(skipped)',
+                        buildNodePath(h)
+                    ).serialize()
+                );
+            }
+
+            //check if empty
+            if(h.innerText.length < 1) {
+                errorsFoundList.push(
+                    new Page_Error(
+                        'Heading(empty)',
+                        buildNodePath(h),
+                    ).serialize()
+                );
+
+                //skip checking the rest of errors; they won't occur
+                return;
+            }
+
+            //check if too long
+            if(h.innerText.length > 80) {
+                errorsFoundList.push(
+                    new Page_Error(
+                        'Heading(long)',
+                        buildNodePath(h),
+                    ).serialize(),
+                );
+            }
+
+            //check if list heading
+            errorsFoundList.push(...auditRegexInstaces(h, regexListNo, 'Heading(list)'));//numbered list
+            errorsFoundList.push(...auditRegexInstaces(h, regexListPart, 'Heading(list)'));//'part' list
+            errorsFoundList.push(...auditRegexInstaces(h, regexListHyphen, 'Heading(list)'));//hyphened list
+
+            //check if all caps
+            errorsFoundList.push(...auditRegexInstaces(h, regexAllCaps, 'All Caps'));
+
+            //check for abbreviations
+            errorsFoundList.push(...auditRegexInstaces(h, regexAbbreviation, 'Abbreviation'));
+
+            //check for repeating characters
+            errorsFoundList.push(...auditRegexInstaces(h, regexRepeatingChars, 'Repeating Characters'))
+
+            //udpate previous heading level
+            prevLevel = currLevel;
+        })
+
+        return errorsFoundList;
+    }
+
+    /**
+     * audit a list of list elements for accessibility
+     * @param {Array<Element>} lists a list of list elements from the DOM
+     * @returns {Array<Page_Error>} a list of serialized (JSON) errors
+     */
+    const audit_lists = (lists) => {
+        let errorsFoundList = new Array();
+
+        //iterate through lists
+        lists.forEach(list => {
+
+            //check for double nested lists
+            //TODO
+
+            //iterate through list items
+            list.querySelectorAll('li').forEach(li => {
+
+                //check if li is empty
+                if(li.innerText.length < 1) {
+                    errorsFoundList.push(
+                        new Page_Error (
+                            'List Item(empty)',
+                            buildNodePath(li),
+                        ).serialize()
+                    );
+
+                    //since no text, don't check for other errors
+                    return;
+                }
+
+                //check for all caps
+                errorsFoundList.push(...auditRegexInstaces(li, regexAllCaps, 'All Caps'));
+
+                //check for abbreviations
+                errorsFoundList.push(...auditRegexInstaces(li, regexAbbreviation, 'Abbreviation'));
+
+                //check for repeating characters
+                errorsFoundList.push(...auditRegexInstaces(li, regexRepeatingChars, 'Repeating Characters'));
+            })
+        })
+
+        return errorsFoundList;
     }
 
     //audit automations for page contents
@@ -768,20 +1053,16 @@
 
         //audit paragraphs for accessibility
         errors.push(...audit_paragraphs(contentEl.querySelectorAll("p")));
-       
-
-        //grab images tags in content
-        let iTags = contentEl.querySelectorAll("img");
-        //grab link tags from content
-        let aTags = contentEl.querySelectorAll("a");
-        //grab all span tags in content
-        let sTags = contentEl.querySelectorAll("span");
-        //grab all heading tags in content
-        let hTags = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        // check underline elements
-        let uTags = contentEl.querySelectorAll('u');
-        //check list items
-        let lTags = contentEl.querySelectorAll('li');
+        //audit span tags for accessibility
+        errors.push(...audit_spans(contentEl.querySelectorAll("span")));
+        //audit img tags for accessibility
+        errors.push(...audit_img(contentEl.querySelectorAll("img")));
+        //audit link tags for accessibility
+        errors.push(...audit_links(contentEl.querySelectorAll("a")));
+        //audit heading tags for accessibility
+        errors.push(...audit_headings(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')));
+        //audit li tags for accessibility
+        errors.push(...audit_lists(contentEl.querySelectorAll('ul, ol')));
 
         let _errors = new Array();
 
@@ -804,11 +1085,17 @@
 
                 let node = searchNode(contentEl, e.path.split('$'));
 
-                console.log(node);
-
                 range.selectNodeContents(node);
                 range.setStart(node.firstChild, e.startIndex);
                 range.setEnd(node.firstChild, e.endIndex)
+
+                ranges.push(range);
+            } else {
+                let range = document.createRange();
+
+                let node = searchNode(contentEl, e.path.split('$'));
+
+                range.selectNode(node);
 
                 ranges.push(range);
             }
@@ -825,58 +1112,12 @@
 
         return;
         /* Automatic Audits for page document */
-        
-        //new document elements needed for audit
-        //const errorNode = generateErrorNode();
-        if(uTags != null && uTags != undefined) {
-            if(uTags.length > 0) {
-                uTags.forEach((el) => {
-                    el.classList.add('error-blank-line');
-                    errors.push((new Page_Error("Underline", "none").serialize()));
-                })
-            }
-        }
+
 
         let listItems = auditRegexInstaces(lTags, regexAllCaps);
         if (listItems != -1) {
             listItems.forEach((key) => {
                 errors.push((new Page_Error("All Caps", "none")).serialize());
-            });
-        }
-
-        /*check image tags */
-        //check alt text length
-        let longAltTextInstaces = auditImagesAltTextLong(iTags);
-        if(longAltTextInstaces != -1) {
-            longAltTextInstaces.forEach((key) => {
-                errors.push((new Page_Error("Image Alt-Text(long)", "element")).serialize());
-            });
-        }
-
-        //check if alt text is insufficient
-        let insAltTextInstances = auditRegexElements(iTags, regexImageInsufficient, "alt");
-        if(insAltTextInstances != -1) {
-            insAltTextInstances.forEach((key) => {
-                errors.push((new Page_Error("Image Alt-Text(insufficient)", "element")).serialize());
-            });
-        }
-
-        /* check links */        
-        //check for invisible links
-        let invisibleLinks = auditGhostLinks(aTags);
-        if(invisibleLinks != -1) {
-            invisibleLinks.forEach((key) => {
-                errors.push((new Page_Error("Link(invisible)", "element")).serialize());
-            });
-        }
-
-        //check for links too long
-
-        //check for documents
-        let documents = auditRegexElements(aTags, regexDocument, "href");
-        if(documents != undefined && documents != null & documents != -1) {
-            documents.forEach((key) => {
-                errors.push((new Page_Error("Doc", "element")).serialize());
             });
         }
 
@@ -898,26 +1139,6 @@
         //         errors.push((new Page_Error("List(multi)", "")).serialize());
         //     });
         // }
-
-        /* check span tags */        
-        //check for underline
-        let underlinedElements = auditRegexElements(sTags, regexUnderline, "style");
-        if(underlinedElements != -1) {
-            underlinedElements.forEach((key) => {
-                errors.push((new Page_Error("Underline", "element")).serialize());
-            });
-        }
-
-        //check for proper text size
-        let smallText = auditRegexElements(sTags, regexTextSize, "style");
-        if(smallText != -1) {
-            smallText.forEach((key) => {
-                errors.push((new Page_Error("Text Size", "element")).serialize());
-            });
-        }
-
-        /* check tables */
-        //grab all tables and check for titles and headers
 
         /* check headings */
         let headingLists = auditRegexInstaces(hTags, regexListNo);
@@ -1000,11 +1221,8 @@
                 //italic
                 node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, input.id))
 
-                //increase font size
-                node.querySelector('#ec-increase-font').addEventListener('click', fontSizeIncrease.bind(this, input.id))
-
                 //decrease font size
-                node.querySelector('#ec-decrease-font').addEventListener('click', fontSizeDecrease.bind(this, input.id))
+                node.querySelector('#ec-lowercase').addEventListener('click', lowercaseText.bind(this, input.id))
 
                 //highlight
                 node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, input.id))
@@ -1028,63 +1246,6 @@
         })
 
         return(errors);
-    }
-
-    /* Audit by DOM element type / tag */
-
-    //paragram element audit
-    const audit_paragraphs = (paragraphs) => {
-        let errorsFoundList = new Array();
-        
-        //iterate through each present p tag
-        paragraphs.forEach(p => {
-            //if an image element wrapped in a paragraph, skip
-            if(p.classList.contains('image-block-alt-display-setup')) {
-                return;
-            } else if (p.firstChild) {
-                try {
-                    if (p.firstChild.classList.contains('image-block-alt-display-setup')) {
-                        return;
-                    }
-                }
-                catch {}
-            }
-
-            //check for blank lines issue
-            if(p.innerHTML === '&nbsp;') {
-
-                //highlight p tag
-                p.classList.add('error-blank-line');
-
-                //add error
-                errorsFoundList.push(
-                    new Page_Error(//new error and parameters
-                        'Blank line',
-                        buildNodePath(p),
-                    ).serialize()//serialize error
-                );
-
-                //skip to next p tag
-                return;
-            }
-
-            //check for abbreviations
-            errorsFoundList.push(...auditRegexInstaces(p, regexAbbreviation, 'Abbreviation'));
-
-            //check for all caps
-            errorsFoundList.push(...auditRegexInstaces(p, regexAllCaps, 'All Caps'));
-
-            //check for repeating characters
-            errorsFoundList.push(...auditRegexInstaces(p, regexRepeatingChars, 'Repeating Characters'));
-
-            //check for handmade lists (numbers)
-            errorsFoundList.push(...auditRegexInstaces(p, regexListNo, 'List(handmade)'));
-
-            //check for handmade lists (hyphen)
-            errorsFoundList.push(...auditRegexInstaces(p, regexListHyphen, 'List(handmade)'));
-        })
-        
-        return errorsFoundList;
     }
 
     /* Course Generation Function */
@@ -1156,7 +1317,7 @@
         }
     }
 
-    //toggle error console display
+    //toggle display class on element interacted with
     const ToggleDisplay = (event) => {
         if(event.srcElement.classList.contains('display')) {
             event.srcElement.classList.remove('display');
@@ -1165,7 +1326,7 @@
         }
     }
 
-    //toggle bold class
+    //toggle bold class on element based on id given
     const toggleBold = (id) => {
         let el = document.getElementById(id);
 
@@ -1176,7 +1337,7 @@
         }
     }
 
-    //toggle italic class
+    //toggle italic class on element based on id given
     const toggleItalic = (id) => {
         let el = document.getElementById(id);
 
@@ -1187,14 +1348,10 @@
         }
     }
 
-    const fontSizeIncrease = (id) => {
+    const lowercaseText = (id) => {
         let el = document.getElementById(id);
 
-    }
-
-    const fontSizeDecrease = (id) => {
-        let el = document.getElementById(id);
-
+        el.value = el.value.toLowerCase();
     }
 
     const toggleHighlight = (id) => {
