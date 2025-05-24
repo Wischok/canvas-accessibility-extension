@@ -557,13 +557,8 @@
      * @param {Array<string>} indexes indexes for search
      * @returns {Element} the desired element
     */
-    const searchNode = (parentEl, indexes) => {
-        //if provided argumnt 'indexes' is not an array
-        //assume it's a single digit and return desired node
-        //based on functions, this shouldn't occur
-        if(!Array.isArray(indexes)) {
-            return parentEl.childNodes[parseInt(indexes)];//return desired element
-        }
+    const searchNode = (parentEl, _indexes) => {
+        let indexes = _indexes.toString().split('$');//split path
 
         //array needs to have elements
         if(indexes.length < 1) {
@@ -578,7 +573,7 @@
 
         //recurse to locate node 
         let index = indexes.pop();//'pop' end off array
-        return searchNode(parentEl.childNodes[parseInt(index)], indexes);
+        return searchNode(parentEl.childNodes[parseInt(index)], indexes.join('$'));
     }
 
     /* Audit Regex Combinations and checking requirements */
@@ -677,27 +672,6 @@
 
         //return issues found
         return foundIssues;
-    }
-
-    //audit heading levels to see if levels are skipped
-    const auditHeadingLevel = (headingEls) => {
-        if(headingEls === null || headingEls === undefined) {return;}
-
-        let headingsSkipped = new Array();
-        let prevLevel = 1;
-        headingEls.forEach((heading) => {
-            let currLevel = parseInt(heading.tagName[1]);
-
-            if((currLevel - prevLevel) > 1) {
-                heading.classList.add('error-blank-line');
-                headingsSkipped.push(heading);
-            }
-
-            prevLevel = currLevel;
-        })
-
-        //if issues found, return found issues or return -1 if none found
-        return headingsSkipped.length > 0 ? headingsSkipped : -1;
     }
 
     //audit lists for multi indentations
@@ -1064,122 +1038,14 @@
         //audit li tags for accessibility
         errors.push(...audit_lists(contentEl.querySelectorAll('ul, ol')));
 
-        let _errors = new Array();
-
-        errors.forEach(e => {
-            let _e = Page_Error.deserialize(e);
-
-            if(_e.name === undefined) {
-                return;
-            }
-
-            _errors.push(_e);
-        })
-
-        console.log(..._errors);
-
-        let ranges = new Array();
-        _errors.forEach(e => {
-            if(e.match.length > 0) {
-                let range = document.createRange();
-
-                let node = searchNode(contentEl, e.path.split('$'));
-
-                range.selectNodeContents(node);
-                range.setStart(node.firstChild, e.startIndex);
-                range.setEnd(node.firstChild, e.endIndex)
-
-                ranges.push(range);
-            } else {
-                let range = document.createRange();
-
-                let node = searchNode(contentEl, e.path.split('$'));
-
-                range.selectNode(node);
-
-                ranges.push(range);
-            }
-        })
-
-        console.log(...ranges);
-
-        ranges.forEach(r => {
-            let span = document.createElement('span');
-            span.classList.add('highlight');
-
-            r.surroundContents(span);
-        })
-
-        return;
-        /* Automatic Audits for page document */
+        //remove any undefined errors from audit
+        errors = errors.filter(e => Page_Error.deserialize(e).name !== undefined);
 
 
-        let listItems = auditRegexInstaces(lTags, regexAllCaps);
-        if (listItems != -1) {
-            listItems.forEach((key) => {
-                errors.push((new Page_Error("All Caps", "none")).serialize());
-            });
-        }
+        /* Diplay Errors on Web Page */
+        displayErrors(errors);
 
-        /* check lists */
-        //grab unordered lists in content
-        let listsUnordered = contentEl.querySelectorAll("ul");
-        let listsOrdered = contentEl.querySelectorAll("ul");
-
-        //check if multi indented lists are present
-        // let multiIndentedLists_ul = auditListsMulti(listsUnordered);
-        // if(multiIndentedLists_ul) {
-        //     multiIndentedLists_ul.forEach((key) => {
-        //         errors.push((new Page_Error("List(multi)", "")).serialize());
-        //     });
-        // }
-        // let multiIndentedLists_ol = auditListsMulti(listsOrdered);
-        // if(multiIndentedLists_ol) {
-        //     multiIndentedLists_ol.forEach((key) => {
-        //         errors.push((new Page_Error("List(multi)", "")).serialize());
-        //     });
-        // }
-
-        /* check headings */
-        let headingLists = auditRegexInstaces(hTags, regexListNo);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("Heading(list)", "none")).serialize());
-            });
-        }
-        headingLists = auditRegexInstaces(hTags, regexListPart);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("Heading(list)", "none")).serialize());
-            });
-        }
-        headingLists = auditRegexInstaces(hTags, regexAllCaps);
-        console.log(headingLists);
-        if (headingLists != -1) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("All Caps", "none")).serialize());
-            });
-        }
-        headingLists = auditHeadingLevel(hTags);
-        console.log(headingLists);
-        if (headingLists != -1 && headingLists != null && headingLists != undefined) {
-            headingLists.forEach((key) => {
-                errors.push((new Page_Error("Heading(skipped)", "none")).serialize());
-            });
-        }
-
-        
-
-        let pArr = new Array();
-        pTags.forEach((pTag) => {
-            if(pTag.innerHTML.includes("$SPANTOCHANGE1$")) {
-                pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-found-input">');
-                pTag.innerHTML = pTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
-                pArr.push(pTag);
-            }
-        })
+        return errors;
 
         let count = 1;
         pArr.forEach((_el) => {
@@ -1246,6 +1112,61 @@
         })
 
         return(errors);
+    }
+
+    /* Display Errors and User Edit Functions */
+
+    /**
+     * display errors on page
+     * @param {Array<Page_Error>} errors a list of serialized Page Error objects 
+     */
+    const displayErrors = (errors) => {
+        //list of ranges
+        //list is used to avoid altering elements until end
+        let ranges = new Array()
+
+        //object to help with display ranges
+        function x_Range(range, error, isElement = false) {
+            this.range = range;
+            this.error = error;
+            this.isElement = isElement;
+        }
+
+        //display each
+        errors.forEach(e => {
+            _e = Page_Error.deserialize(e);
+
+            let range = document.createRange()//new display range
+            let node = searchNode(contentEl, _e.path);//find node
+            range.selectNodeContents(node);//direct to node contents
+            
+            //display part of element
+            if(_e.match.length > 0) {//if matched to instance within element
+
+                //direct to area within element
+                range.setStart(node.firstChild, _e.startIndex);
+                range.setEnd(node.firstChild, _e.endIndex)
+            
+                //add range to array as partial element
+                ranges.push(new x_Range(range, _e));
+                return;
+            }
+
+            //add range to array as full element
+            ranges.push(new x_Range(range, _e, true));
+        })
+
+        ranges.forEach(r => {
+            if(r.isElement) {//if full element, add class
+                console.log(r.error.path);
+                searchNode(contentEl, r.error.path).classList.add('highlight');
+            } else {//if partial element, wrap in span
+                let span = document.createElement('span');
+                span.classList.add('highlight');
+
+                r.range.surroundContents(span);
+            }
+        })
     }
 
     /* Course Generation Function */
