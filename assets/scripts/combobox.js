@@ -30,7 +30,7 @@ var SelectActions = {
 };
 
 // error types for dropdown
-const errorList = "Abbreviation$All Caps$Repeating Characters$Audio only$Blank line$Color Contrast$Color as Meaning$Doc$Heading(accidental)$Heading(first level)$Heading(list)$Heading(skipped)$Image Alt-Text(insufficient)$Image Alt-Text(long)$Image Alt-Text(redundant)$Image(decorative)$Invisible$Language$Link(URL)$Link(broken)$Link(invisible)$Link(long)$Link(non-descriptive)$Link(redundant)$List(multi)$List$PDF Present$Powerpoint$Table(headers)$Table(title)$Text Size$Underline$Video(closed captioning)$Word Doc";
+const errorList = "Abbreviation$All Caps$Repeating Characters$Audio only$Blank line$Color Contrast$Color as Meaning$Doc$Heading(accidental)$Heading(first level)$Heading(list)$Heading(skipped)$Image Alt-Text(insufficient)$Image Alt-Text(long)$Image Alt-Text(redundant)$Image(decorative)$Invisible$Language$Link(URL)$Link(broken)$Link(invisible)$Link(long)$Link(non-descriptive)$Link(redundant)$List(multi)$List$List(handmade)$PDF Present$Powerpoint$Table(headers)$Table(title)$Text Size$Underline$Video(closed captioning)$Word Doc";
 
 /*
     Helper Functions

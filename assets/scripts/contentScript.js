@@ -1,5 +1,6 @@
 (() => {
     let _errors = new Array();
+    let contentEl;
     const textLookUp = "#:~:text=";
 
     class Course {
@@ -337,12 +338,15 @@
         }
     }
     class Page_Error {
-        constructor(name, htmlRef, required = false, startIndex, endIndex) {
+        constructor(name, path = -1, startIndex = -1, endIndex = -1,match = "", id = -1, changes = {}, required = false) {
             this.name = name;
-            this.htmlRef = htmlRef;
             this.required = required;
             this.startIndex = startIndex;
             this.endIndex = endIndex;
+            this.id = id
+            this.path = path;
+            this.changes = changes;
+            this.match = match;
         }
 
         serialize() {
@@ -360,63 +364,13 @@
                 obj = JSON.parse(JSON.stringify(serialized));
             }
 
-            return new Page_Error(obj.name, obj.htmlRef, obj.required, obj.startIndex, obj.endIndex);
+            return new Page_Error(obj.name, obj.path, obj.startIndex, obj.endIndex, obj.match, obj.id, obj.changes, obj.required);
         }
     }
 
-    //audit code
-    const regexAbbreviation = /((?<![a-z])[a-z]{1,3}(\.|\/)([a-z]{1,1})?(\.|\/)?)|\bch\b|\bp\b|\bpp\b/idgm;
-    const regexListNo = /^(\()?\d{1,2}(\.|\)|\-){1,1}/gmd;
-    const regexListPart = /^\bPart\s{1,2}\d\b/gmd;
-    const regexListHyphen = /^[-]{1,2}\s{1,1}/gmd;
-    const regexAllCaps = /\b[A-Z\s\'\"\:]{7,}\b/gmd;
-    const regexImageInsufficient = /\b(JPEG|GIF|PNG|TIFF|BMP|JPG)\b/igm;
-    const regexLinkURL = /\b(www|https)\b/igm;
-    const regexDocument = /\b[\.]{1,1}((pdf|docx|doc|docm|dotx|dotm)[^com]?$)\b/i;//check a tags for href strings and compare them to rg
-    const regexTextSize = /\bfont-size[\:\s]{1,}[^\d]\d{1,1}pt\b/d;
-    const regexUnderline = /\btext-decoration[\:\s]{1,}underline\b/d;
-    const regexRepeatingChars = /(.)\1{9,}/igmd;
-    //underline: check each span if has style attribute and if it has underline
-    //alt text long: check alt text image string length
-    //heading skipped: get a list of headings and check their numerical order
-    //link invisible: check each a element if it has inner text or not
-    //list muli: check if it has child elements of list 1 down and if it has child elements of ul or ol
-    //table title: check if table has title element
+    /* Helpful Functions */
 
-    /* Audit Functions */
-    //audit a list of elements' innertext against an abbreviation regex
-    const auditRegexInstaces = (elements, regex) => {
-        let foundIssues = new Array();
-
-        //iterate through elements
-        elements.forEach((el) => {
-            let lastIndex = 0;
-            let str = "";
-
-            //record information of each found error
-            while (match = regex.exec(el.innerText)) {
-                //record error text
-                foundIssues.push(buildLookUpText(match, regex.lastIndex));
-
-                //flags to swap out later with html
-                str += match.input.substr(lastIndex, match.index - lastIndex);
-                str += "$SPANTOCHANGE1$";
-                str += match.input.substr(match.index, regex.lastIndex - match.index);
-                str += "$SPANTOCHANGE2$";
-
-                lastIndex = regex.lastIndex;
-            }
-
-            if(lastIndex != 0) {
-                str += el.innerText.substr(lastIndex, (el.innerText.length - lastIndex) - 1);
-                el.innerText = str;
-            }
-        });
-
-        //return errors if found, otherwise return an error (-1) value
-        return foundIssues.length > 0 ? obj = foundIssues: -1;
-    }
-
+    //build lookup text that goes at the end of a url
     const buildLookUpText = (match, lastIndex) => {
         let index = match.index;
         let start, end;
@@ -504,6 +458,178 @@
         str += ",-";
         str += match.input.substr(lastIndex, end - lastIndex);
         return str.replaceAll(" ", "%20");
+    }
+    
+    //load in an html chunk / ccode file
+    const fetchHTMLChunk = async (path) => {
+        //HTML chunk document
+        let document;
+
+        await fetch(path)
+        .then(response => {
+            //when page is loaded, convert to text
+            return response.text();
+        })
+        .then(html => {
+            //initialize DOM parser
+            const parser = new DOMParser();
+
+            //parse the text
+            const doc = parser.parseFromString(html, "text/html");
+
+            document = doc;
+        })
+        .catch(error => {
+            console.error('failed ot fetch page: ', error);
+        })
+
+        return document;
+    }
+
+    //load external css chunk / code file
+    const fetchCSSChunk = async path => {
+        //CSS style sheet
+        let css;
+
+        await fetch(path)
+        .then(response => {
+            //when stylesheet is loaded, convert to text
+            return response.text();
+        })
+        .then(text => {
+            //return css text
+            css = text;
+        })
+        .catch(error => {
+            console.error('failed to fetch css: ', error);
+        })
+
+        return css;
+    }
+
+    /**
+     * builds a path for retracing back to given node
+     * @param {Element} node node being searched for
+     * @param {int} count times function was recursed
+     * @param {string} str search path (type string)
+     * @returns {string} the string to locate the given element
+    */
+    const buildNodePath = (node, count = 0, str = "") => {
+
+        //skip adding a seperator if this is the first instance
+        if(count > 0) {
+            str = str + '$';
+        }
+
+        //if main content element isn't found within a depth of 15, 
+        // break out of recursion
+        if (count > 15) {
+            return -1;
+        }
+
+        //setup to find the index of current node
+        for(let i = 0; i < node.parentNode.childNodes.length; i++) {
+            if(node === node.parentNode.childNodes[i]) {
+                //add index to node path string
+                str += i.toString();
+
+                //break loop
+                break;
+            }
+        }
+
+        //if parent node is the main content element, end recursion
+        if(node.parentNode === contentEl) {
+            return str;
+        }
+
+        //if parent node is not main content element, 
+        //continue recursion until found
+        return buildNodePath(node.parentNode, ++count, str);
+    }
+
+    
+    /**
+     * 
+     * find desired Element node from provided path
+     * | example of path: '2$1$1$31'
+     * @param {Element} parentEl parent element
+     * @param {Array<string>} indexes indexes for search
+     * @returns {Element} the desired element
+    */
+    const searchNode = (parentEl, indexes) => {
+        //if provided argumnt 'indexes' is not an array
+        //assume it's a single digit and return desired node
+        //based on functions, this shouldn't occur
+        if(!Array.isArray(indexes)) {
+            return parentEl.childNodes[parseInt(indexes)];//return desired element
+        }
+
+        //array needs to have elements
+        if(indexes.length < 1) {
+            throw new Error('array needs to have elements');
+        }
+
+        //if there is only a single element left
+        //return desired node
+        if(indexes.length < 2) {
+            return parentEl.childNodes[parseInt(indexes.pop())];//return desired element
+        }
+
+        //recurse to locate node 
+        let index = indexes.pop();//'pop' end off array
+        return searchNode(parentEl.childNodes[parseInt(index)], indexes);
+    }
+
+    /* Audit Regex Combinations and checking requirements */
+    const regexAbbreviation = /((?<![a-z])[a-z]{1,3}(\.|\/)([a-z]{1,1})?(\.|\/)?)|\bch\b|\bp\b|\bpp\b/idgm;
+    const regexListNo = /^(\()?\d{1,2}(\.|\)|\-){1,1}/gmd;
+    const regexListPart = /^\bPart\s{1,2}\d\b/gmd;
+    const regexListHyphen = /^[-]{1,2}\s{1,1}/gmd;
+    const regexAllCaps = /\b[A-Z\s\'\"\:]{7,}\b/gmd;
+    const regexImageInsufficient = /\b(JPEG|GIF|PNG|TIFF|BMP|JPG)\b/igm;
+    const regexLinkURL = /\b(www|https)\b/igm;
+    const regexDocument = /\b[\.]{1,1}((pdf|docx|doc|docm|dotx|dotm)[^com]?$)\b/i;//check a tags for href strings and compare them to rg
+    const regexTextSize = /\bfont-size[\:\s]{1,}[^\d]\d{1,1}pt\b/d;
+    const regexUnderline = /\btext-decoration[\:\s]{1,}underline\b/d;
+    const regexRepeatingChars = /(.)\1{9,}/igmd;
+    //underline: check each span if has style attribute and if it has underline
+    //alt text long: check alt text image string length
+    //heading skipped: get a list of headings and check their numerical order
+    //link invisible: check each a element if it has inner text or not
+    //list muli: check if it has child elements of list 1 down and if it has child elements of ul or ol
+    //table title: check if table has title element
+
+    /* Audit Functions */
+    /**
+     * Audit an element's inner text against the provided regex
+     * @param {Element} el the element being checked 
+     * @param {RegExp} regex regex used to audit
+     * @param {string} errorType type of error being checked for
+     * @returns a list containing all of the errors found
+     */
+    const auditRegexInstaces = (el, regex, errorType) => {
+        let foundIssues = new Array();
+
+        //check only against the current elements inner text; don't check inner text of children
+        let str = [].reduce.call(el.childNodes, function (a, b) { return a + (b.nodeType === 3 ? b.textContent : ''); }, '');
+
+            //iterate through each found issue
+            while (match = regex.exec(str)) {
+                //create error from location on page where it was found
+                foundIssues.push(
+                    new Page_Error(
+                    errorType,
+                    buildNodePath(el),
+                    match.index,
+                    regex.lastIndex,
+                    match[0],
+                    ).serialize()
+                );
+            }
+
+        //return errors if found, otherwise return an error (-1) value
+        return foundIssues;
     }
 
     const auditRegexElements = (elements, regex, attribute) => {
@@ -604,70 +730,8 @@
         return totalInstances.length > 0 ? totalInstances : -1;
     }
 
-    //generate course records and pass to extension for saving
-    const generateCourse = () => {
-        //declare course object
-        let courseId = window.location.href.split("instructure.com/")[1].split("/")[1];
-        let courseName = document.head.querySelector("title").innerHTML.replaceAll("Course Modules: ", "");
-        let course = new Course(courseId, "1.0.0", courseName);//current course version = 1.0.0
-        
-        /*add all modules to course*/
-        //grab module elements
-        let modules = document.getElementsByClassName("context_module");
-        let _modules = new Array();
-
-        //check elements for needed attributes and push to new array
-        for(let i = 0; i < modules.length; i++) {
-            if(modules[i].hasAttribute("data-module-id") && modules[i].getAttribute("data-module-id") != "{{ id }}") {_modules.push(modules[i]); }
-        }
-
-
-        //create new modules
-        for(let i = 0; i < _modules.length; i++) {
-            //create new module instance to be added
-            let moduleId = _modules[i].getAttribute("data-module-id");
-            let published = (_modules[i].getAttribute("data-workflow-state") === "active");
-            let title = _modules[i].querySelectorAll('span.name')[0].getAttribute('title');
-            let module = new Module(moduleId, title , published);
-
-            //create new pages (module items) for each module
-            let pages = _modules[i].querySelectorAll(".context_module_item");
-            for(let k = 0; k < pages.length; k++) {
-                //get module item / page information
-                const params = {
-                    moduleItemId: pages[k].getAttribute("id").replace("context_module_item_", ""),
-                    type: pages[k].querySelectorAll("span.type_icon")[0].getAttribute("title"),
-                    title: pages[k].querySelectorAll("a")[0].getAttribute("title"),
-                    url: "https://mtsac.instructure.com" + pages[k].querySelectorAll("a")[0].getAttribute("href"),
-                    id2: "",
-
-                }
-
-                //depending on specific page type, grab secondary id
-                if(params.type === "Quiz" || params.type === "Discussion Topic" || params.type === "Assignment") {
-                    params.id2 = pages[k].querySelectorAll("span.lock-icon")[0].getAttribute("data-content-id");
-                }
-                else {
-                    params.id2 = pages[k].querySelectorAll("div.ig-admin span.publish-icon")[0].getAttribute("data-module-item-name").toLowerCase().replaceAll(":", "").replaceAll('"',"").replaceAll(" ", "-").replaceAll("---", "-").replaceAll("--","-");
-                }
-
-                let item = new ModuleItem(params.moduleItemId, params.type, params.title, params.url, params.id2);
-
-                //add module item
-                module.addItem(item);
-            }
-
-            //if module has pages, add module to course 
-            if(module.count > 0) {course.addModule(module); }
-        }
-
-        console.log(course);
-        return(course.serialize());
-    }
-
     //audit automations for page contents
     const audit = async () => {
-        let contentEl;
         let errors = new Array();
 
         //determine main content element based on page type
@@ -683,7 +747,6 @@
         else {
             contentEl = document.querySelectorAll('#assignment_show div.description')[0];
         }
-
 
         /* HTML Chunks to insert into DOM */
 
@@ -701,10 +764,12 @@
         document.head.appendChild(styleEl);//append to head
 
 
-        /* DOM elements to audit */
+        /* audit by DOM element type */
 
-        //grab paragraph tags in content
-        let pTags = contentEl.querySelectorAll("p");
+        //audit paragraphs for accessibility
+        errors.push(...audit_paragraphs(contentEl.querySelectorAll("p")));
+       
+
         //grab images tags in content
         let iTags = contentEl.querySelectorAll("img");
         //grab link tags from content
@@ -713,13 +778,52 @@
         let sTags = contentEl.querySelectorAll("span");
         //grab all heading tags in content
         let hTags = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        console.log(hTags);
         // check underline elements
         let uTags = contentEl.querySelectorAll('u');
         //check list items
         let lTags = contentEl.querySelectorAll('li');
 
-        
+        let _errors = new Array();
+
+        errors.forEach(e => {
+            let _e = Page_Error.deserialize(e);
+
+            if(_e.name === undefined) {
+                return;
+            }
+
+            _errors.push(_e);
+        })
+
+        console.log(..._errors);
+
+        let ranges = new Array();
+        _errors.forEach(e => {
+            if(e.match.length > 0) {
+                let range = document.createRange();
+
+                let node = searchNode(contentEl, e.path.split('$'));
+
+                console.log(node);
+
+                range.selectNodeContents(node);
+                range.setStart(node.firstChild, e.startIndex);
+                range.setEnd(node.firstChild, e.endIndex)
+
+                ranges.push(range);
+            }
+        })
+
+        console.log(...ranges);
+
+        ranges.forEach(r => {
+            let span = document.createElement('span');
+            span.classList.add('highlight');
+
+            r.surroundContents(span);
+        })
+
+        return;
         /* Automatic Audits for page document */
         
         //new document elements needed for audit
@@ -733,67 +837,10 @@
             }
         }
 
-        //audit paragraph tags
-        pTags.forEach((el) => {
-            if(el.innerHTML === "&nbsp;") {
-                el.classList.add("error-blank-line");
-                errors.push((new Page_Error("Blank line", " ")).serialize());
-            }
-        })
-
-        //check for abbreviations
-        let abbreviations = auditRegexInstaces(pTags, regexAbbreviation);
-        console.log(abbreviations);
-        if (abbreviations != -1) {
-            abbreviations.forEach((key) => {
-                errors.push((new Page_Error("Abbreviation", "none")).serialize());
-            });
-        }
-
-        //check for repeating characters
-        let repeatingChars = auditRegexInstaces(pTags, regexRepeatingChars)
-        if (repeatingChars != -1) {
-            repeatingChars.forEach((key) => {
-                errors.push((new Page_Error("Repeating Characters", "none")).serialize());
-            });
-        }
-
-        //check for handmade lists
-        let handmadeLists_no = auditRegexInstaces(pTags, regexListNo);
-        console.log(handmadeLists_no);
-        if (handmadeLists_no != -1) {
-            handmadeLists_no.forEach((key) => {
-                errors.push((new Page_Error("List", "none")).serialize());
-            });
-        }
-        handmadeLists_no = auditRegexInstaces(pTags, regexListPart);
-        console.log(handmadeLists_no);
-        if (handmadeLists_no != -1) {
-            handmadeLists_no.forEach((key) => {
-                errors.push((new Page_Error("List", "none")).serialize());
-            });
-        }
-
-        let handmadeLists_hyphen = auditRegexInstaces(pTags, regexListHyphen);
-        console.log(handmadeLists_hyphen);
-        if (handmadeLists_hyphen != -1) {
-            handmadeLists_hyphen.forEach((key) => {
-                errors.push((new Page_Error("List", "none")).serialize());
-            });
-        }
         let listItems = auditRegexInstaces(lTags, regexAllCaps);
         if (listItems != -1) {
             listItems.forEach((key) => {
                 errors.push((new Page_Error("All Caps", "none")).serialize());
-            });
-        }
-
-        //check for all caps
-        let allCaps_p = auditRegexInstaces(pTags, regexAllCaps);
-        console.log(allCaps_p);
-        if(allCaps_p != -1) {
-            allCaps_p.forEach((key) => {
-                errors.push((new Page_Error("All Caps","none")).serialize());
             });
         }
 
@@ -983,6 +1030,126 @@
         return(errors);
     }
 
+    /* Audit by DOM element type / tag */
+
+    //paragram element audit
+    const audit_paragraphs = (paragraphs) => {
+        let errorsFoundList = new Array();
+        
+        //iterate through each present p tag
+        paragraphs.forEach(p => {
+            //if an image element wrapped in a paragraph, skip
+            if(p.classList.contains('image-block-alt-display-setup')) {
+                return;
+            } else if (p.firstChild) {
+                try {
+                    if (p.firstChild.classList.contains('image-block-alt-display-setup')) {
+                        return;
+                    }
+                }
+                catch {}
+            }
+
+            //check for blank lines issue
+            if(p.innerHTML === '&nbsp;') {
+
+                //highlight p tag
+                p.classList.add('error-blank-line');
+
+                //add error
+                errorsFoundList.push(
+                    new Page_Error(//new error and parameters
+                        'Blank line',
+                        buildNodePath(p),
+                    ).serialize()//serialize error
+                );
+
+                //skip to next p tag
+                return;
+            }
+
+            //check for abbreviations
+            errorsFoundList.push(...auditRegexInstaces(p, regexAbbreviation, 'Abbreviation'));
+
+            //check for all caps
+            errorsFoundList.push(...auditRegexInstaces(p, regexAllCaps, 'All Caps'));
+
+            //check for repeating characters
+            errorsFoundList.push(...auditRegexInstaces(p, regexRepeatingChars, 'Repeating Characters'));
+
+            //check for handmade lists (numbers)
+            errorsFoundList.push(...auditRegexInstaces(p, regexListNo, 'List(handmade)'));
+
+            //check for handmade lists (hyphen)
+            errorsFoundList.push(...auditRegexInstaces(p, regexListHyphen, 'List(handmade)'));
+        })
+        
+        return errorsFoundList;
+    }
+
+    /* Course Generation Function */
+
+    //generate course records and pass to extension for saving
+    const generateCourse = () => {
+        //declare course object
+        let courseId = window.location.href.split("instructure.com/")[1].split("/")[1];
+        let courseName = document.head.querySelector("title").innerHTML.replaceAll("Course Modules: ", "");
+        let course = new Course(courseId, "1.0.0", courseName);//current course version = 1.0.0
+        
+        /*add all modules to course*/
+        //grab module elements
+        let modules = document.getElementsByClassName("context_module");
+        let _modules = new Array();
+
+        //check elements for needed attributes and push to new array
+        for(let i = 0; i < modules.length; i++) {
+            if(modules[i].hasAttribute("data-module-id") && modules[i].getAttribute("data-module-id") != "{{ id }}") {_modules.push(modules[i]); }
+        }
+
+
+        //create new modules
+        for(let i = 0; i < _modules.length; i++) {
+            //create new module instance to be added
+            let moduleId = _modules[i].getAttribute("data-module-id");
+            let published = (_modules[i].getAttribute("data-workflow-state") === "active");
+            let title = _modules[i].querySelectorAll('span.name')[0].getAttribute('title');
+            let module = new Module(moduleId, title , published);
+
+            //create new pages (module items) for each module
+            let pages = _modules[i].querySelectorAll(".context_module_item");
+            for(let k = 0; k < pages.length; k++) {
+                //get module item / page information
+                const params = {
+                    moduleItemId: pages[k].getAttribute("id").replace("context_module_item_", ""),
+                    type: pages[k].querySelectorAll("span.type_icon")[0].getAttribute("title"),
+                    title: pages[k].querySelectorAll("a")[0].getAttribute("title"),
+                    url: "https://mtsac.instructure.com" + pages[k].querySelectorAll("a")[0].getAttribute("href"),
+                    id2: "",
+
+                }
+
+                //depending on specific page type, grab secondary id
+                if(params.type === "Quiz" || params.type === "Discussion Topic" || params.type === "Assignment") {
+                    params.id2 = pages[k].querySelectorAll("span.lock-icon")[0].getAttribute("data-content-id");
+                }
+                else {
+                    params.id2 = pages[k].querySelectorAll("div.ig-admin span.publish-icon")[0].getAttribute("data-module-item-name").toLowerCase().replaceAll(":", "").replaceAll('"',"").replaceAll(" ", "-").replaceAll("---", "-").replaceAll("--","-");
+                }
+
+                let item = new ModuleItem(params.moduleItemId, params.type, params.title, params.url, params.id2);
+
+                //add module item
+                module.addItem(item);
+            }
+
+            //if module has pages, add module to course 
+            if(module.count > 0) {course.addModule(module); }
+        }
+
+        console.log(course);
+        return(course.serialize());
+    }
+
     const UpdateInputWidth = (event) => {
         if (event.srcElement.hasAttribute('style')) {
             event.srcElement.style.width = event.srcElement.value.length.toString() + 'ch';
@@ -1103,52 +1270,6 @@
         });
 
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});
-    }
-
-    //load in an html chunk
-    const fetchHTMLChunk = async (path) => {
-        //HTML chunk document
-        let document;
-
-        await fetch(path)
-        .then(response => {
-            //when page is loaded, convert to text
-            return response.text();
-        })
-        .then(html => {
-            //initialize DOM parser
-            const parser = new DOMParser();
-
-            //parse the text
-            const doc = parser.parseFromString(html, "text/html");
-
-            document = doc;
-        })
-        .catch(error => {
-            console.error('failed ot fetch page: ', error);
-        })
-
-        return document;
-    }
-
-    const fetchCSSChunk = async path => {
-        //CSS style sheet
-        let css;
-
-        await fetch(path)
-        .then(response => {
-            //when stylesheet is loaded, convert to text
-            return response.text();
-        })
-        .then(text => {
-            //return css text
-            css = text;
-        })
-        .catch(error => {
-            console.error('failed to fetch css: ', error);
-        })
-
-        return css;
     }
 
     const addNewErrorEventHandler = () => {
