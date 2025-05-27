@@ -227,10 +227,12 @@ function createAccordionPair_ModuleItem(list, key, index) {
         let e = Page_Error.deserialize(error);
 
         let li = document.createElement('li');
+        li.id = e.id;
+        
         let button2 = document.createElement('button');
-        button2.setAttribute('title', error.htmlRef != undefined ? error.htmlRef.replaceAll("%20", " ") : "Nothing to Show");
+        if(e.match.length > 0) {li.title = button2.setAttribute('title', e.match)};
         button2.classList.add('link');
-        button2.addEventListener("click", removeError.bind(this));
+        //remove error function
 
         let div = document.createElement('div');
         div.classList.add('top-row');
@@ -264,30 +266,6 @@ function saveCourse(course) {
 async function showError(error) {
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
     const response = await chrome.tabs.sendMessage(tab.id, {type: "SHOW-ERROR", url: error.htmlRef});
-}
-
-async function removeError(item) {
-    //grab url information
-    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
-
-    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
-    let module = Module.deserialize(_course.fetchModule(url.url.toString()));
-
-    //remove error from course
-    Object.keys(moduleItem.errors).forEach(function(key) {
-        if(key === item.srcElement.innerText) {
-            moduleItem.errors[key].pop();
-        }
-    });
-
-    moduleItem.count--;
-    module.setModuleItem(moduleItem)
-    _course.setModule(module);
-    _course.errorCount--;
-    
-    saveCourse(_course.serialize());
-    displayCoursePage();
 }
 
 function fetchCourse(id) {
@@ -332,6 +310,11 @@ document.getElementById("add-error1").addEventListener("click" , (async () => {
     // TO FIX <- error hrefs are broken
 
     let e = new Page_Error(name, key);
+    
+    addError(e);
+}));
+
+async function addError(e) {
     const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
 
     let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
@@ -341,10 +324,26 @@ document.getElementById("add-error1").addEventListener("click" , (async () => {
     module.setModuleItem(moduleItem)
     _course.setModule(module);
     _course.errorCount++;
-    
+
     saveCourse(_course.serialize());
     displayCoursePage();
-}));
+}
+
+async function removeError(id) {
+    const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
+
+    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
+    let module = Module.deserialize(_course.fetchModule(url.url.toString()));
+
+
+    moduleItem.removeError(id);
+    module.setModuleItem(moduleItem)
+    _course.setModule(module);
+    _course.errorCount--;
+
+    saveCourse(_course.serialize());
+    displayCoursePage();
+}
 
 document.getElementById("save").addEventListener("click", async () => {
     //get web url info (course & page id)
@@ -441,7 +440,6 @@ async function pageSetup() {
     let module = Module.deserialize(_course.fetchModule(activeTab.url.toString()));
     if(!moduleItem.checked) {
         moduleItem.checked = true;
-        
 
         const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
         const response = await chrome.tabs.sendMessage(tab.id, {type: "AUDIT"});
@@ -480,6 +478,11 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         //fetch (returns a copy object instance of a module item)
         let condition = ModuleItem.deserialize(_course.fetchModuleItem(response.url.toString())).checked;
         sendResponse({checked: condition});
+    }
+
+    if(request.type === "REMOVE-ERROR") {
+        let error = removeError(request.error_id);
+        sendResponse({error: error});
     }
 });
 

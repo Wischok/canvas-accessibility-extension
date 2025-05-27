@@ -264,15 +264,17 @@
             this.count++;
         }
 
-        removeError(error) {
-            Object.keys(this.errors).forEach(function (key) {
-                console.log(error.name + " " + key);
-                if (key === error.name) {
-                    console.log(this.errors[key])
-                    this.errors[key].splice(1, 0);
+        //remove error within object. Return removed error for remove
+        //in other areas
+        removeError(id) {
+            //remove error from list
+            for(let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
+                if(Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
+                    this.count--;
+                    //remove error from page and return
+                    return this.errors[id.split('-')[0]].splice(i,1);
                 }
-            });
-            this.count--;
+            }
         }
 
         findError(id) {
@@ -353,8 +355,10 @@
             return JSON.stringify(this);
         }
 
-        static generateRandomId() {
+        static generateRandomId(name) {
             return (
+                name +
+                '-' +
                 Math.floor(Math.random() * 9999).toString() +
                 '-' +
                 Math.floor(Math.random() * 9999).toString() +
@@ -631,7 +635,7 @@
                     new Page_Error(
                     errorType,
                     buildNodePath(el),
-                    Page_Error.generateRandomId(),
+                    Page_Error.generateRandomId(errorType),
                     match.index,
                     regex.lastIndex,
                     match[0],
@@ -661,7 +665,7 @@
                     new Page_Error(
                         errorType,
                         buildNodePath(el),
-                        Page_Error.generateRandomId(),
+                        Page_Error.generateRandomId(errorType),
                     ).serialize()
                 );
             }
@@ -681,7 +685,7 @@
                         new Page_Error (
                             errorType,
                             buildNodePath(el),
-                            Page_Error.generateRandomId(),
+                            Page_Error.generateRandomId(errorType),
                         ).serialize()
                     );
                 }
@@ -751,7 +755,7 @@
                     new Page_Error(//new error and parameters
                         'Blank line',
                         buildNodePath(p),
-                        Page_Error.generateRandomId(),
+                        Page_Error.generateRandomId('Blank line'),
                     ).serialize()//serialize error
                 );
 
@@ -830,7 +834,7 @@
                     new Page_Error(
                         'Link(invisible)',
                         buildNodePath(a),
-                        Page_Error.generateRandomId(),
+                        Page_Error.generateRandomId('Link(invisible)'),
                     ).serialize()
                 )
 
@@ -863,7 +867,7 @@
                         new Page_Error(
                             'Image Alt-Text(long)',
                             buildNodePath(img),
-                            Page_Error.generateRandomId(),
+                            Page_Error.generateRandomId('Image Alt-Text(long)'),
                         ).serialize()
                     )
                 }
@@ -899,7 +903,7 @@
                         new Page_Error(
                             'Heading(first level)',
                             buildNodePath(headings[i]),
-                            Page_Error.generateRandomId(),
+                            Page_Error.generateRandomId('Heading(first level)'),
                         ).serialize()
                     );
                 }
@@ -919,7 +923,7 @@
                     new Page_Error(
                         'Heading(skipped)',
                         buildNodePath(h),
-                        Page_Error.generateRandomId(),
+                        Page_Error.generateRandomId('Heading(skipped)'),
                     ).serialize()
                 );
             }
@@ -930,7 +934,7 @@
                     new Page_Error(
                         'Heading(empty)',
                         buildNodePath(h),
-                        Page_Error.generateRandomId(),
+                        Page_Error.generateRandomId('Heading(empty)'),
                     ).serialize()
                 );
 
@@ -944,7 +948,7 @@
                     new Page_Error(
                         'Heading(long)',
                         buildNodePath(h),
-                        Page_Error.generateRandomId(),
+                        Page_Error.generateRandomId('Heading(long)'),
                     ).serialize(),
                 );
             }
@@ -993,7 +997,7 @@
                         new Page_Error (
                             'List Item(empty)',
                             buildNodePath(li),
-                            Page_Error.generateRandomId(),
+                            Page_Error.generateRandomId('List Item(empty)'),
                         ).serialize()
                     );
 
@@ -1117,8 +1121,9 @@
 
         ranges.forEach(r => {
             if(r.isElement) {//if error is full element, add class
-                console.log(r.error.path);
-                searchNode(contentEl, r.error.path).classList.add('highlight');
+                let el = searchNode(contentEl, r.error.path);
+                el.id = r.error.id;
+                el.classList.add('highlight');
             } else {//if partial element, wrap in span
                 createEditableErrorInput(r.range, r.error);
             }
@@ -1183,6 +1188,9 @@
 
         //highlight
         node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, node.id))
+
+        //delete error
+        node.querySelector('#ec-delete').addEventListener('click', deleteError.bind(this, node.id))
 
         //create span to wrap inner text with
         let span = document.createElement('span');
@@ -1297,7 +1305,26 @@
     const lowercaseText = (id) => {
         let input = document.getElementById(id).querySelector('input');
 
-        input = input.toLowerCase();
+        input.value = input.value.toLowerCase();
+    }
+
+    const deleteError = async (id) => {
+        //grab node / element to remove from DOM
+        let node = document.getElementById(id);
+
+        let error = await chrome.runtime.sendMessage({type: "REMOVE-ERROR", error_id: id});
+
+        console.log(Page_Error.deserialize(error));
+        return;
+
+        //remove element from DOM and replace with text
+        if(node.querySelector('input')) {
+            let input  = node.querySelector('input');
+
+
+        }
+
+        //remove error from extension popup
     }
 
     const toggleHighlight = (id) => {
