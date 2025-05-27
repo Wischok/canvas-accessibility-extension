@@ -338,7 +338,7 @@
         }
     }
     class Page_Error {
-        constructor(name, path = -1, startIndex = -1, endIndex = -1,match = "", id = -1, changes = {}, required = false) {
+        constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1,match = "", changes = {}, required = false) {
             this.name = name;
             this.required = required;
             this.startIndex = startIndex;
@@ -353,6 +353,16 @@
             return JSON.stringify(this);
         }
 
+        static generateRandomId() {
+            return (
+                Math.floor(Math.random() * 9999).toString() +
+                '-' +
+                Math.floor(Math.random() * 9999).toString() +
+                '-' +
+                Date.now().toString()
+            )
+        }
+
         static deserialize(serialized) {
             let obj;
 
@@ -364,9 +374,14 @@
                 obj = JSON.parse(JSON.stringify(serialized));
             }
 
-            return new Page_Error(obj.name, obj.path, obj.startIndex, obj.endIndex, obj.match, obj.id, obj.changes, obj.required);
+            return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
         }
     }
+
+    /* HTML Chunks to insert into DOM */
+
+    //HTML CHunks reference document; to query for needed chunks
+    let HTML_CHUNK_REF_DOC, CSS_CHUNK; 
 
     /* Helpful Functions */
 
@@ -616,6 +631,7 @@
                     new Page_Error(
                     errorType,
                     buildNodePath(el),
+                    Page_Error.generateRandomId(),
                     match.index,
                     regex.lastIndex,
                     match[0],
@@ -645,6 +661,7 @@
                     new Page_Error(
                         errorType,
                         buildNodePath(el),
+                        Page_Error.generateRandomId(),
                     ).serialize()
                 );
             }
@@ -664,6 +681,7 @@
                         new Page_Error (
                             errorType,
                             buildNodePath(el),
+                            Page_Error.generateRandomId(),
                         ).serialize()
                     );
                 }
@@ -733,6 +751,7 @@
                     new Page_Error(//new error and parameters
                         'Blank line',
                         buildNodePath(p),
+                        Page_Error.generateRandomId(),
                     ).serialize()//serialize error
                 );
 
@@ -810,7 +829,8 @@
                 errorsFoundList.push(
                     new Page_Error(
                         'Link(invisible)',
-                        buildNodePath(a)
+                        buildNodePath(a),
+                        Page_Error.generateRandomId(),
                     ).serialize()
                 )
 
@@ -843,6 +863,7 @@
                         new Page_Error(
                             'Image Alt-Text(long)',
                             buildNodePath(img),
+                            Page_Error.generateRandomId(),
                         ).serialize()
                     )
                 }
@@ -878,6 +899,7 @@
                         new Page_Error(
                             'Heading(first level)',
                             buildNodePath(headings[i]),
+                            Page_Error.generateRandomId(),
                         ).serialize()
                     );
                 }
@@ -896,7 +918,8 @@
                 errorsFoundList.push(
                     new Page_Error(
                         'Heading(skipped)',
-                        buildNodePath(h)
+                        buildNodePath(h),
+                        Page_Error.generateRandomId(),
                     ).serialize()
                 );
             }
@@ -907,6 +930,7 @@
                     new Page_Error(
                         'Heading(empty)',
                         buildNodePath(h),
+                        Page_Error.generateRandomId(),
                     ).serialize()
                 );
 
@@ -920,6 +944,7 @@
                     new Page_Error(
                         'Heading(long)',
                         buildNodePath(h),
+                        Page_Error.generateRandomId(),
                     ).serialize(),
                 );
             }
@@ -968,6 +993,7 @@
                         new Page_Error (
                             'List Item(empty)',
                             buildNodePath(li),
+                            Page_Error.generateRandomId(),
                         ).serialize()
                     );
 
@@ -1010,8 +1036,8 @@
         /* HTML Chunks to insert into DOM */
 
         //HTML CHunks reference document; to query for needed chunks
-        const HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
-        const CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
+        HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
+        CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
         
 
         /* Load stylesheet into current document */
@@ -1041,77 +1067,10 @@
         //remove any undefined errors from audit
         errors = errors.filter(e => Page_Error.deserialize(e).name !== undefined);
 
-
         /* Diplay Errors on Web Page */
         displayErrors(errors);
 
         return errors;
-
-        let count = 1;
-        pArr.forEach((_el) => {
-            let str;
-            if(_el.hasAttribute('style')) {
-                str = _el.getAttribute('style') + 'line-height: 2.3';
-            }
-            else {
-                str = 'line-height: 2.3';
-            }
-            
-            _el.setAttribute('style', str);
-
-            _el.querySelectorAll('.error-found-input').forEach((el) => {
-                //copy html chunk to replicate for each error
-                let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input').cloneNode(true);
-                
-                //grab input error from copied html chunk
-                let input = node.querySelector('input');
-                input.style.width = el.innerText.length.toString() + 'ch';//update width
-                input.setAttribute('value', el.innerText);//set input text
-                input.id = 'error-found-input-' + count;//create id
-                
-                //add event listener on type.
-                input.addEventListener('keydown', UpdateInputWidth.bind(input.id));
-
-                //display editor console: add event listener to error node on focus and lose focus
-                node.addEventListener('focusin', ToggleDisplay.bind());
-                node.addEventListener('focusout', ToggleDisplay.bind());
-
-                //display editor console: add event listener to error node editor console on focus and lose focus
-                node.querySelector('.editor-console').addEventListener('focusin', ToggleDisplay.bind());
-                node.querySelector('.editor-console').addEventListener('focusout', ToggleDisplay.bind());
-
-                //add editor console event listeners | pass in referenced input element id for updating
-                //bold
-                node.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(this, input.id))
-
-                //italic
-                node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, input.id))
-
-                //decrease font size
-                node.querySelector('#ec-lowercase').addEventListener('click', lowercaseText.bind(this, input.id))
-
-                //highlight
-                node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, input.id))
-
-                //set html
-                el.replaceWith(node);
-
-                //add to counter
-                count++;
-            })
-        })
-
-        hTags.forEach((hTag) => {
-            hTag.innerHTML = hTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-blank-line">');
-            hTag.innerHTML = hTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
-        })
-
-        lTags.forEach((lTag) => {
-            lTag.innerHTML = lTag.innerHTML.replaceAll("$SPANTOCHANGE1$", '<span class="error-blank-line">');
-            lTag.innerHTML = lTag.innerHTML.replaceAll("$SPANTOCHANGE2$", '</span>');
-        })
-
-        return(errors);
     }
 
     /* Display Errors and User Edit Functions */
@@ -1157,16 +1116,81 @@
         })
 
         ranges.forEach(r => {
-            if(r.isElement) {//if full element, add class
+            if(r.isElement) {//if error is full element, add class
                 console.log(r.error.path);
                 searchNode(contentEl, r.error.path).classList.add('highlight');
             } else {//if partial element, wrap in span
-                let span = document.createElement('span');
-                span.classList.add('highlight');
-
-                r.range.surroundContents(span);
+                createEditableErrorInput(r.range, r.error);
             }
         })
+    }
+
+    /**
+     * create an editable region for the specified text of an accessbility error
+     * @param {Range} range the range showing the errors location 
+     * @param {Page_Error} error the associated accessibility error 
+     */
+    const createEditableErrorInput = (range, error) => {
+
+        //copy html chunk to replicate for each error
+        let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input').cloneNode(true);
+        node.id = error.id;
+
+        //spread out node
+        let element = searchNode(contentEl, error.path);
+        let str;
+        if (element.hasAttribute('style')) {
+            str = element.getAttribute('style') + 'line-height: 2.3';
+        }
+        else {
+            str = 'line-height: 2.3';
+        }
+
+        element.setAttribute('style', str);
+
+        //grab input error from copied html chunk
+        let input = node.querySelector('input');
+        input.style.width = error.match.length.toString() + 'ch';//update width
+
+        //check if error was already updated
+        if('TEXT_UDPATE' in error.changes) {
+            //provided change value
+            input.setAttribute('value', error.changes['TEXT_UDPATE']);//set input text
+        } else {
+            input.setAttribute('value', error.match);//set input text
+        }
+
+        //add event listener on type.
+        input.addEventListener('keydown', UpdateInputWidth.bind(this, node.id));
+
+        //display editor console: add event listener to error node on focus and lose focus
+        node.addEventListener('focusin', ToggleDisplay.bind());
+        node.addEventListener('focusout', ToggleDisplay.bind());
+
+        //display editor console: add event listener to error node editor console on focus and lose focus
+        node.querySelector('.editor-console').addEventListener('focusin', ToggleDisplay.bind());
+        node.querySelector('.editor-console').addEventListener('focusout', ToggleDisplay.bind());
+
+        //add editor console event listeners | pass in referenced input element id for updating
+        //bold
+        node.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(this, node.id))
+
+        //italic
+        node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, node.id))
+
+        //decrease font size
+        node.querySelector('#ec-lowercase').addEventListener('click', lowercaseText.bind(this, node.id))
+
+        //highlight
+        node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, node.id))
+
+        //create span to wrap inner text with
+        let span = document.createElement('span');
+        span.id = 'REPLACE-ELEMENT';
+        range.surroundContents(span);
+
+        //replace previous span with error node
+        document.getElementById('REPLACE-ELEMENT').replaceWith(node);
     }
 
     /* Course Generation Function */
@@ -1232,9 +1256,10 @@
         return(course.serialize());
     }
 
-    const UpdateInputWidth = (event) => {
-        if (event.srcElement.hasAttribute('style')) {
-            event.srcElement.style.width = event.srcElement.value.length.toString() + 'ch';
+    const UpdateInputWidth = (id) => {
+        let input = document.getElementById(id).querySelector('input');
+        if (input.hasAttribute('style')) {
+            input.style.width = input.value.length.toString() + 'ch';
         }
     }
 
@@ -1249,39 +1274,39 @@
 
     //toggle bold class on element based on id given
     const toggleBold = (id) => {
-        let el = document.getElementById(id);
+        let input = document.getElementById(id).querySelector('input');
 
-        if(el.classList.contains('bold')) {
-            el.classList.remove('bold')
+        if(input.classList.contains('bold')) {
+            input.classList.remove('bold')
         }else {
-            el.classList.add('bold');
+            input.classList.add('bold');
         }
     }
 
     //toggle italic class on element based on id given
     const toggleItalic = (id) => {
-        let el = document.getElementById(id);
+        let input = document.getElementById(id).querySelector('input');
 
-        if(el.classList.contains('italic')) {
-            el.classList.remove('italic')
+        if(input.classList.contains('italic')) {
+            input.classList.remove('italic')
         }else {
-            el.classList.add('italic');
+            input.classList.add('italic');
         }
     }
 
     const lowercaseText = (id) => {
-        let el = document.getElementById(id);
+        let input = document.getElementById(id).querySelector('input');
 
-        el.value = el.value.toLowerCase();
+        input = input.toLowerCase();
     }
 
     const toggleHighlight = (id) => {
-        let el = document.getElementById(id);
+        let input = document.getElementById(id).querySelector('input');
 
-        if(el.classList.contains('highlight')) {
-            el.classList.remove('highlight')
+        if(input.classList.contains('highlight')) {
+            input.classList.remove('highlight')
         }else {
-            el.classList.add('highlight');
+            input.classList.add('highlight');
         }
     }
 
