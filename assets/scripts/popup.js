@@ -174,23 +174,6 @@ async function displayCoursePage() {
     })
 }
 
-function getPageId() {
-    //example url https://mtsac.instructure.com/courses/106139/modules/items/3168294
-    //example url https://mtsac.instructure.com/courses/106139/pages/how-to-navigate-this-course?module_item_id=3168295
-    if(fullURL.includes('module_item_id=')) {
-        let temp = fullURL.split('module_item_id=')[1];
-        if(temp.includes('#')) {//acount for textlookup string
-            temp = temp.split("#")[0];
-        }
-        
-        return temp;
-    }
-    else {
-        console.log('page missing module-item-id');
-        return fullURL;
-    }
-}
-
 function createAccordionPair_ModuleItem(list, key, index) {    
     //button / accordion heading
     let head = document.createElement('div');
@@ -221,26 +204,33 @@ function createAccordionPair_ModuleItem(list, key, index) {
     content.setAttribute("role", 'region');
     content.setAttribute('aria-labelledby', 'accordion' + index.toString());
 
-    list.forEach((error) => {
-        let e = Page_Error.deserialize(error);
+    for (let i = 0; i < list.length; i++) {
+        let e = Page_Error.deserialize(list[i]);
 
         let li = document.createElement('li');
         li.id = e.id;
-        
+
         let button2 = document.createElement('button');
-        if(e.match.length > 0) {li.title = button2.setAttribute('title', e.match)};
+        if (e.match.length > 0) { li.title = button2.setAttribute('title', e.match) };
         button2.classList.add('link');
         //remove error function
 
         let div = document.createElement('div');
         div.classList.add('top-row');
-        div.innerText = key;
+        if (e.match.length < 1) {
+            div.innerText = e.name + ': #' + (i + 1);
+        } else if (e.match.length > 30) {
+            div.innerText = (e.match.substring(0, 30) + '...')
+        } else {
+            div.innerText = e.match
+        }
+
         button2.appendChild(div);
 
         li.appendChild(button2);
         li.appendChild(document.createElement('hr'));
         content.appendChild(li);
-    })
+    }
 
     //skip if no errors are present
     if(list.length < 1) {
@@ -259,11 +249,6 @@ function saveCourse(course) {
     chrome.storage.local.set({
         [Course.deserialize(course).id]: course,
     })
-}
-
-async function showError(error) {
-    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    const response = await chrome.tabs.sendMessage(tab.id, {type: "SHOW-ERROR", url: error.htmlRef});
 }
 
 function fetchCourse(id) {
@@ -366,7 +351,25 @@ document.getElementById('fix-all').addEventListener('click', async () => {
 
 document.getElementById('clear').addEventListener('click', () => {
     chrome.storage.local.clear();
-})
+});
+
+document.getElementById('display').addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+    const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
+    
+    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
+    
+    let errors = new Array();
+    Object.keys(moduleItem.errors).forEach((key) => {
+        let list = moduleItem.errors[key];
+
+        list.forEach(error => {
+            errors.push(error);
+        })
+    });
+
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "DISPLAY-ERRORS", errors: JSON.stringify(errors)});
+});
 
 document.getElementById('next-page').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});

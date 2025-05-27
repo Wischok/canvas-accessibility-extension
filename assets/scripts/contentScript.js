@@ -388,96 +388,6 @@
     let HTML_CHUNK_REF_DOC, CSS_CHUNK; 
 
     /* Helpful Functions */
-
-    //build lookup text that goes at the end of a url
-    const buildLookUpText = (match, lastIndex) => {
-        let index = match.index;
-        let start, end;
-
-        //if givin highlight is large enough, build a standard text search string
-        if (match[0].length > 14) {
-            while (index > 0) {
-                let temp = index - 1;
-                if (match.input[temp] === " ") {
-                    start = index;
-                    break;
-                }
-
-                if (index < -9999) {
-                    alert("infinite loop");
-                    return;
-                }
-                index--;
-            }
-            index = lastIndex;
-            while (index < match.input.length - 1) {
-                let temp = index + 1;
-                if (match.input[temp] === " ") {
-                    end = index;
-                    break;
-                }
-
-                if (index > 9999) {
-                    alert("infinite loop");
-                    return;
-                }
-
-                index++;
-            }
-
-            return match.input.substr(start, end - start).replaceAll(" ", "%20");
-        }
-
-        if((match.index - 10) < 0) {
-            start = 0;
-        }
-        else {
-            index -= 10;
-            while (index > 0) {
-                let temp = index - 1;
-
-                if (match.input[temp] === " ") {
-                    start = index;
-                    break;
-                }
-
-                if (index < -9999) {
-                    alert("infinite loop");
-                    return;
-                }
-                index--;
-            }
-        }
-        
-        if((lastIndex + 10) > (match.input.length - 1)) {
-            end = match.input.length - 1;
-        }
-        else {
-            index = lastIndex + 10;
-            while (index < match.input.length - 1) {
-                let temp = index + 1;
-                if (match.input[temp] === " ") {
-                    end = temp;
-                    break;
-                }
-
-                if (index > 9999) {
-                    alert("infinite loop");
-                    return;
-                }
-
-                index++;
-            }
-        }
-
-        let str = "";
-        str += match.input.substr(start, match.index - start);
-        str += "-,";
-        str += match[0];
-        str += ",-";
-        str += match.input.substr(lastIndex, end - lastIndex);
-        return str.replaceAll(" ", "%20");
-    }
     
     //load in an html chunk / ccode file
     const fetchHTMLChunk = async (path) => {
@@ -547,10 +457,13 @@
         }
 
         //setup to find the index of current node
+        let offset = 0;//account for invisible '#text' nodes
         for(let i = 0; i < node.parentNode.childNodes.length; i++) {
-            if(node === node.parentNode.childNodes[i]) {
+            console.log(node.parentNode.childNodes[i].nodeName);
+            if(node.parentNode.childNodes[i].nodeName === '#text') {offset++;}
+            if(node === node.parentNode.childNodes[i]) {                
                 //add index to node path string
-                str += i.toString();
+                str += i + '-' + offset;
 
                 //break loop
                 break;
@@ -578,21 +491,51 @@
     */
     const searchNode = (parentEl, _indexes) => {
         let indexes = _indexes.toString().split('$');//split path
-
+        console.log(indexes);
         //array needs to have elements
         if(indexes.length < 1) {
             throw new Error('array needs to have elements');
         }
 
+        //retrieve index value where element is located
+        let value = indexes.pop().split('-');
+        let number1 = parseInt(value[0]);
+        let number2 = parseInt(value[1]);
+        //if webpage is an edit page, alter index
+        let index = (window.location.href.includes('edit')) ? 
+        parseInt(number1 - number2) : number1;
+
+        console.log(index);
+        console.log(parentEl);
+        console.log(parentEl.childNodes[index]);
+
         //if there is only a single element left
         //return desired node
         if(indexes.length < 2) {
-            return parentEl.childNodes[parseInt(indexes.pop())];//return desired element
+            return parentEl.childNodes[index];//return desired element
         }
 
         //recurse to locate node 
-        let index = indexes.pop();//'pop' end off array
+        console.log(parentEl.childNodes[parseInt(index)]);
         return searchNode(parentEl.childNodes[parseInt(index)], indexes.join('$'));
+    }
+
+    /**
+     * Alter search path to still find required element
+     * @param {string} path path to be altered 
+     * @param {Number} offset number offset to adjust first element by
+     * @returns {string} updated path to search node
+     */
+    const updateSearchPath = (path, offset) => {
+        let indexes = path.toString().split('$');//split path
+
+        //adjust first index by offset to account
+        //for webpage difference
+        let num = (parseInt(indexes[indexes.length - 1].split('-')[0]) + offset);
+        if(num < 0) { num = 0; }
+        indexes[indexes.length - 1] = num + '-' + indexes[indexes.length - 1].split('-')[1];
+
+        return indexes.join('$');
     }
 
     /* Audit Regex Combinations and checking requirements */
@@ -1024,29 +967,6 @@
         return new Promise((resolve, reject) => {
             let errors = new Array();
 
-            //determine main content element based on page type
-            if (window.location.href.includes('pages')) {
-                contentEl = document.querySelectorAll("#content div.user_content")[0];
-            }
-            else if (window.location.href.includes('quizzes')) {
-                contentEl = document.querySelectorAll('div.user_content')[0];
-            }
-            else if (window.location.href.includes('discussion_topics')) {
-                contentEl = document.querySelectorAll('div.userMessage')[0];
-            }
-            else {
-                contentEl = document.querySelectorAll('#assignment_show div.description')[0];
-            }
-
-            /* Load stylesheet into current document */
-
-            //create style el
-            let styleEl = document.createElement('style');
-            styleEl.type = 'text/css';
-            styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
-            document.head.appendChild(styleEl);//append to head
-
-
             /* audit by DOM element type */
 
             //audit paragraphs for accessibility
@@ -1080,6 +1000,7 @@
      * @param {Array<Page_Error>} errors a list of serialized Page Error objects 
      */
     const displayErrors = (errors) => {
+        errors.forEach(e => { console.log(Page_Error.deserialize(e))})
         //list of ranges
         //list is used to avoid altering elements until end
         let ranges = new Array()
@@ -1096,7 +1017,14 @@
             _e = Page_Error.deserialize(e);
 
             let range = document.createRange()//new display range
-            let node = searchNode(contentEl, _e.path);//find node
+            let node;//node to find
+            if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+                console.log(_e);
+                node = searchNode(contentEl,updateSearchPath(_e.path, -1));
+            } else {
+                node = searchNode(contentEl, _e.path);
+            }
+
             range.selectNodeContents(node);//direct to node contents
             
             //display part of element
@@ -1116,10 +1044,18 @@
         })
 
         ranges.forEach(r => {
+            let node;//node to find
+            //adjust search pattern if on edit page
+            if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+                node = searchNode(contentEl, updateSearchPath(r.error.path, -1));
+            } else {
+                node = searchNode(contentEl, r.error.path);
+            }
+
+            console.log(r.error);
             if(r.isElement) {//if error is full element, add class
-                let el = searchNode(contentEl, r.error.path);
-                el.id = r.error.id;
-                el.classList.add('highlight');
+                node.id = r.error.id;
+                node.classList.add('highlight');
             } else {//if partial element, wrap in span
                 createEditableErrorInput(r.range, r.error);
             }
@@ -1131,14 +1067,21 @@
      * @param {Range} range the range showing the errors location 
      * @param {Page_Error} error the associated accessibility error 
      */
-    const createEditableErrorInput = (range, error) => {
+    const createEditableErrorInput = async (range, error) => {
 
         //copy html chunk to replicate for each error
         let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input').cloneNode(true);
         node.id = error.id;
 
-        //spread out node
-        let element = searchNode(contentEl, error.path);
+        //find node and raise line height
+        let element;
+        //if 'edit' on 'pages' page, change path
+        if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+            element = searchNode(contentEl, updateSearchPath(error.path, -1));
+        } else {
+            element = searchNode(contentEl, error.path);
+        }
+        
         let str;
         if (element.hasAttribute('style')) {
             str = element.getAttribute('style') + 'line-height: 2.3;';
@@ -1163,6 +1106,9 @@
 
         //add event listener on type.
         input.addEventListener('keydown', UpdateInputWidth.bind(this, node.id));
+        input.addEventListener('input', () => {
+            
+        })
 
         //display editor console: add event listener to error node on focus and lose focus
         node.addEventListener('focusin', ToggleDisplay.bind());
@@ -1194,7 +1140,7 @@
         range.surroundContents(span);
 
         //replace previous span with error node
-        document.getElementById('REPLACE-ELEMENT').replaceWith(node);
+        contentEl.querySelector('#REPLACE-ELEMENT').replaceWith(node);
     }
 
     /* Course Generation Function */
@@ -1334,24 +1280,6 @@
     }
 
     const NewCoursePageLoaded = async () => {
-        let contentEl;
-
-        //determine main content element based on page type
-        if(window.location.href.includes('pages')) {
-            contentEl = document.querySelectorAll("#content div.user_content")[0];
-        }
-        else if(window.location.href.includes('quizzes')) {
-            contentEl = document.querySelectorAll('div.user_content')[0];
-        }
-        else if(window.location.href.includes('discussion_topics')) {
-            contentEl = document.querySelectorAll('div.userMessage')[0];
-        }
-        else {
-            contentEl = document.querySelectorAll('#assignment_show div.description')[0];
-        }
-
-        console.log(contentEl);
-
         //display accessibility elements for aiding visual review
         let styleEl = document.createElement('style');
         styleEl.type = 'text/css';
@@ -1443,12 +1371,15 @@
         return seltxt;
     }
 
+    //set content el 
+
     chrome.runtime.onMessage.addListener(
         async function (request, sender, sendResponse) {
-            const { type, value, moduleItemId, pageTitle, pageType, courseId, url } = request;
+            const { type, value, moduleItemId, pageTitle, pageType, courseId, url, errors } = request;
 
             //new page request
             if (type === "NEW") {
+                console.log('new window');
                 if (window.location.href.includes(".instructure.com/courses/") && !window.location.href.includes("modules")) {
                     if (window.location.href.includes("quizzes") || window.location.href.includes("pages") ||
                         window.location.href.includes("discussion_topics") || window.location.href.includes("assignments")) {
@@ -1457,6 +1388,44 @@
                         //HTML CHunks reference document; to query for needed chunks
                         HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
                         CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
+
+                        //determine main content element based on page type
+                        if (window.location.href.includes('pages')) {
+                            contentEl = document.querySelectorAll("#content div.user_content")[0];
+                        }
+                        else if (window.location.href.includes('quizzes')) {
+                            contentEl = document.querySelectorAll('div.user_content')[0];
+                        }
+                        else if (window.location.href.includes('discussion_topics')) {
+                            contentEl = document.querySelectorAll('div.userMessage')[0];
+                        }
+                        else {
+                            contentEl = document.querySelectorAll('#assignment_show div.description')[0];
+                        }
+
+                        //if edit version of webpage
+                        if (window.location.href.includes('edit')) {
+                            const iframe = document.getElementById('wiki_page_body_ifr');
+                            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+                            contentEl = iframeDocument.getElementById('tinymce');
+                        
+                            let styleEl = iframeDocument.createElement('style');
+                            styleEl.type = 'text/css';
+                            styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+                            iframeDocument.head.appendChild(styleEl);//append to head
+                        }
+
+                        console.log(contentEl);
+                        console.log(...contentEl.childNodes);
+
+                        /* Load stylesheet into current document */
+
+                        //create style el
+                        let styleEl = document.createElement('style');
+                        styleEl.type = 'text/css';
+                        styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+                        document.head.appendChild(styleEl);//append to head
 
                         NewCoursePageLoaded();
                         return;
@@ -1555,6 +1524,10 @@
             if (type === "REDIRECT-PAGE") {
                 console.log('clicked');
                 window.location.href = url;
+            }
+
+            if (type === "DISPLAY-ERRORS") {
+                displayErrors(JSON.parse(errors));
             }
         }
     );

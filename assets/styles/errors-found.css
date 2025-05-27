@@ -23,6 +23,8 @@
     box-shadow: none;
     padding-block: 0;
     padding-inline: 7px;
+    margin: 0;
+    height: 100%;
 }
 
 .error-found-input:has(input.display) .editor-console,

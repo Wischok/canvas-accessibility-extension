@@ -536,6 +536,7 @@ button.delete {
 
 .accordion .content li .top-row {
     font-weight: 500;
+    text-align: left;
 }
 
 .accordion .content li .bottom-row {
@@ -557,9 +558,10 @@ button.delete {
     justify-content: center;
     align-items: start;
     flex-direction: column;
+    width: 100%;
 }
 
-.accordion a:hover {
+.accordion .link:hover {
     background-color: #b2d0e8;
     border: 1px solid blue;
 }
