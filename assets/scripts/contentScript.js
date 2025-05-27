@@ -1140,10 +1140,10 @@
         let element = searchNode(contentEl, error.path);
         let str;
         if (element.hasAttribute('style')) {
-            str = element.getAttribute('style') + 'line-height: 2.3';
+            str = element.getAttribute('style') + 'line-height: 2.3;';
         }
         else {
-            str = 'line-height: 2.3';
+            str = 'line-height: 2.3;';
         }
 
         element.setAttribute('style', str);

@@ -90,6 +90,6 @@
     font-style: italic;
 }
 
-p:has(.highlight) {
+p:has(img.highlight) {
     background-color: rgb(255, 255, 114) !important;
 }
