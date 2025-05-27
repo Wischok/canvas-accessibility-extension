@@ -108,8 +108,6 @@ function createAccordionPair_Module(module, index) {
     content.setAttribute('aria-labelledby', 'accordion' + index.toString());
     document.getElementById('accordion-group').appendChild(content);
 
-    console.log(module.moduleItems);
-
     //module pages
     Object.keys(module.moduleItems).forEach((key) => {
         let item = ModuleItem.deserialize(module.moduleItems[key]);
@@ -366,6 +364,10 @@ document.getElementById('fix-all').addEventListener('click', async () => {
     const response = await chrome.tabs.sendMessage(tab.id, {type: "AUDIT"});
 });
 
+document.getElementById('clear').addEventListener('click', () => {
+    chrome.storage.local.clear();
+})
+
 document.getElementById('next-page').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
     const response = await chrome.tabs.sendMessage(tab.id, {type: "NEXT"});
@@ -442,25 +444,26 @@ async function pageSetup() {
         moduleItem.checked = true;
 
         const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-        const response = await chrome.tabs.sendMessage(tab.id, {type: "AUDIT"});
+        chrome.tabs.sendMessage(tab.id, { type: "AUDIT" }, function (response) {
+            console.log(response);
+            if (response != null) {
+                if (JSON.parse(response).length > 0) {
+                    let errors = JSON.parse(response);
+                    console.log(errors);
 
-        console.log(response);
-        if (response != null) {
-            if (JSON.parse(response).length > 0) {
-                let errors = JSON.parse(response);
-
-                errors.forEach((error) => {
-                    moduleItem.addError(Page_Error.deserialize(error));
-                })
+                    errors.forEach((error) => {
+                        moduleItem.addError(Page_Error.deserialize(error));
+                    })
+                }
             }
-        }
 
-        console.log(moduleItem);
-        module.setModuleItem(moduleItem)
-        _course.setModule(module);
-        _course.errorCount++;
-        saveCourse(_course.serialize());
-        displayCoursePage();
+            console.log(moduleItem);
+            module.setModuleItem(moduleItem)
+            _course.setModule(module);
+            _course.errorCount++;
+            saveCourse(_course.serialize());
+            displayCoursePage();
+        });
     }
 }
 

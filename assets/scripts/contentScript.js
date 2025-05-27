@@ -1021,60 +1021,56 @@
 
     //audit automations for page contents
     const audit = async () => {
-        let errors = new Array();
+        return new Promise((resolve, reject) => {
+            let errors = new Array();
 
-        //determine main content element based on page type
-        if(window.location.href.includes('pages')) {
-            contentEl = document.querySelectorAll("#content div.user_content")[0];
-        }
-        else if(window.location.href.includes('quizzes')) {
-            contentEl = document.querySelectorAll('div.user_content')[0];
-        }
-        else if(window.location.href.includes('discussion_topics')) {
-            contentEl = document.querySelectorAll('div.userMessage')[0];
-        }
-        else {
-            contentEl = document.querySelectorAll('#assignment_show div.description')[0];
-        }
+            //determine main content element based on page type
+            if (window.location.href.includes('pages')) {
+                contentEl = document.querySelectorAll("#content div.user_content")[0];
+            }
+            else if (window.location.href.includes('quizzes')) {
+                contentEl = document.querySelectorAll('div.user_content')[0];
+            }
+            else if (window.location.href.includes('discussion_topics')) {
+                contentEl = document.querySelectorAll('div.userMessage')[0];
+            }
+            else {
+                contentEl = document.querySelectorAll('#assignment_show div.description')[0];
+            }
 
-        /* HTML Chunks to insert into DOM */
+            /* Load stylesheet into current document */
 
-        //HTML CHunks reference document; to query for needed chunks
-        HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
-        CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
-        
-
-        /* Load stylesheet into current document */
-
-        //create style el
-        let styleEl = document.createElement('style');
-        styleEl.type = 'text/css';
-        styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
-        document.head.appendChild(styleEl);//append to head
+            //create style el
+            let styleEl = document.createElement('style');
+            styleEl.type = 'text/css';
+            styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+            document.head.appendChild(styleEl);//append to head
 
 
-        /* audit by DOM element type */
+            /* audit by DOM element type */
 
-        //audit paragraphs for accessibility
-        errors.push(...audit_paragraphs(contentEl.querySelectorAll("p")));
-        //audit span tags for accessibility
-        errors.push(...audit_spans(contentEl.querySelectorAll("span")));
-        //audit img tags for accessibility
-        errors.push(...audit_img(contentEl.querySelectorAll("img")));
-        //audit link tags for accessibility
-        errors.push(...audit_links(contentEl.querySelectorAll("a")));
-        //audit heading tags for accessibility
-        errors.push(...audit_headings(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')));
-        //audit li tags for accessibility
-        errors.push(...audit_lists(contentEl.querySelectorAll('ul, ol')));
+            //audit paragraphs for accessibility
+            errors.push(...audit_paragraphs(contentEl.querySelectorAll("p")));
+            //audit span tags for accessibility
+            errors.push(...audit_spans(contentEl.querySelectorAll("span")));
+            //audit img tags for accessibility
+            errors.push(...audit_img(contentEl.querySelectorAll("img")));
+            //audit link tags for accessibility
+            errors.push(...audit_links(contentEl.querySelectorAll("a")));
+            //audit heading tags for accessibility
+            errors.push(...audit_headings(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')));
+            //audit li tags for accessibility
+            errors.push(...audit_lists(contentEl.querySelectorAll('ul, ol')));
 
-        //remove any undefined errors from audit
-        errors = errors.filter(e => Page_Error.deserialize(e).name !== undefined);
+            //remove any undefined errors from audit
+            errors = errors.filter(e => Page_Error.deserialize(e).name !== undefined);
 
-        /* Diplay Errors on Web Page */
-        displayErrors(errors);
+            /* Diplay Errors on Web Page */
+            displayErrors(errors);
 
-        return errors;
+            const data = JSON.stringify(errors);
+            resolve(data);
+        });
     }
 
     /* Display Errors and User Edit Functions */
@@ -1456,15 +1452,25 @@
                 if (window.location.href.includes(".instructure.com/courses/") && !window.location.href.includes("modules")) {
                     if (window.location.href.includes("quizzes") || window.location.href.includes("pages") ||
                         window.location.href.includes("discussion_topics") || window.location.href.includes("assignments")) {
+                        /* HTML Chunks to insert into DOM */
+
+                        //HTML CHunks reference document; to query for needed chunks
+                        HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
+                        CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
+
                         NewCoursePageLoaded();
                         return;
                     }
                 }
             }
 
-            if(type === "AUDIT") {
-                sendResponse(JSON.stringify(audit()));
-                return;
+            if (type === "AUDIT") {
+                audit().then(
+                    result => {
+                        sendResponse(result);
+                    }
+                )
+
             }
 
             if(type === "NEXT") {
