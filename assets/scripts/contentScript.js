@@ -278,25 +278,47 @@
         }
 
         findError(id) {
-            let _key, _index;
-            Object.keys(this.errors).forEach(function (key) {
-                let index = 0;
-                this.errors[key].forEach((error) => {
-                    let e = Page_Error.deserialize(error);
-                    if (error.id === id) {
+            
+            let _key, index;
+            Object.keys(this.errors).forEach(key => {
+                for(let i = 0; i < this.errors[key].length; i++) {
+                    let errorId = JSON.parse(this.errors[key][i]).id;
+                    console.log(errorId);
+                    if(errorId === id) {
                         _key = key;
-                        _index = index;
+                        index = i;
                     }
-                    index++;
-                })
+                }
             });
 
-            const respone = {
-                index: _index,
+            const response = {
+                index: index,
                 key: _key,
             }
 
-            return respone;
+            return response;
+        }
+
+        addChangeToError(id, change) {
+            //grab location of error
+            const location = this.findError(id);
+            
+            //deserealize error and add change
+            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+            error.addChange(change);
+
+            this.errors[location.key][location.id] = error.serialize();
+        }
+
+        removeChangeFromError(id, change) {
+            //grab location of error
+            const location = this.findError(id);
+            
+            //deserealize error and add change
+            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+            error.removeChange(change);
+
+            this.errors[location.key][location.id] = error.serialize();
         }
 
         errorArrayExists(e) {
@@ -353,6 +375,16 @@
 
         serialize() {
             return JSON.stringify(this);
+        }
+
+        addChange(change) {
+            this.changes[change.key] = change.value;
+            console.log(this);
+        }
+
+        removeChange(change) {
+            delete this.changes[change.key];
+            console.log(this);
         }
 
         static generateRandomId(name) {
@@ -637,30 +669,6 @@
 
         //return issues found
         return foundIssues;
-    }
-
-    //audit lists for multi indentations
-    const auditListsMulti = (lists) => {
-        let totalInstances = new Array();//found issues
-        
-        //check if list elements have child elements one level down
-        lists.forEach((list) => {
-            let hasLiChild = false;
-            list.querySelectorAll("li").forEach((li) => {
-                if(li.parentNode === list) {
-                    hasLiChild = true;
-                }
-            })
-
-            //if no child found, add to issues list
-            if(!hasLiChild) {
-                totalInstances.push(list);
-                hasLiChild = false;
-            }
-        })
-
-        //if issues found, return found issues or return -1 if none found
-        return totalInstances.length > 0 ? totalInstances : -1;
     }
 
     /* Audit by DOM element type / tag */
@@ -1131,6 +1139,9 @@
         //highlight
         node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, node.id))
 
+        //delete element / selection
+        node.querySelector('#ec-remove').addEventListener('click', removeSelection.bind(this, node.id))
+
         //delete error
         node.querySelector('#ec-delete').addEventListener('click', deleteError.bind(this, node.id))
 
@@ -1141,6 +1152,29 @@
 
         //replace previous span with error node
         contentEl.querySelector('#REPLACE-ELEMENT').replaceWith(node);
+
+        //update error based on changes
+        Object.keys(error.changes).forEach(key => {
+            if(key === 'italic') {
+                node.querySelector('input').classList.add('italic');
+            }
+
+            if(key === 'bold') {
+                node.querySelector('input').classList.add('bold');
+            }
+
+            if(key === 'delete') {
+                node.querySelector('input').classList.add('strikethrough');
+            }
+
+            if(key === 'highlight') {
+                node.querySelector('input').classList.add('highlight');
+            }
+
+            if(key === 'lowercase') {
+                node.querySelector('input').value = node.querySelector('input').value.toLowerCase();
+            }
+        })
     }
 
     /* Course Generation Function */
@@ -1233,15 +1267,75 @@
         }
     }
 
+    const removeSelection = (id) => {
+        let input = document.getElementById(id).querySelector('input');
+
+        if(input.classList.contains('strikethrough')) {
+            input.classList.remove('strikethrough')
+        }else {
+            input.classList.add('strikethrough');
+        }
+    }
+
     //toggle italic class on element based on id given
     const toggleItalic = (id) => {
         let input = document.getElementById(id).querySelector('input');
 
         if(input.classList.contains('italic')) {
-            input.classList.remove('italic')
+            input.classList.remove('italic');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if(window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        removeChange(course, id, {key: 'italic', value: 'italic'});
+                    }
+                })
+            })
         }else {
             input.classList.add('italic');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if(window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        addChange(course, id, {key: 'italic', value: 'italic'});
+                    }
+                })
+            })
         }
+    }
+
+    const addChange = (course, id, change) => {
+        let moduleItem = ModuleItem.deserialize(course.fetchModuleItem(window.location.href));
+        let module = Module.deserialize(course.fetchModule(window.location.href));
+
+        moduleItem.addChangeToError(id, change);
+        module.setModuleItem(moduleItem)
+        course.setModule(module);
+
+        saveCourse(course.serialize());
+    }
+
+    const removeChange = (course, id, change) => {
+        let moduleItem = ModuleItem.deserialize(course.fetchModuleItem(window.location.href));
+        let module = Module.deserialize(course.fetchModule(window.location.href));
+
+        moduleItem.removeChangeFromError(id, change);
+        module.setModuleItem(moduleItem)
+        course.setModule(module);
+
+        saveCourse(course.serialize());
+    }
+
+    const saveCourse = (course) => {
+        chrome.storage.local.set({
+            [Course.deserialize(course).id]: course,
+        })
     }
 
     const lowercaseText = (id) => {
