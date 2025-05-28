@@ -82,7 +82,6 @@
                 })
             });
             this.totalErrors += 1;
-            console.log(this.totalErrors);
         }
 
         removeError(errorId, saveInfo) {
@@ -283,7 +282,6 @@
             Object.keys(this.errors).forEach(key => {
                 for(let i = 0; i < this.errors[key].length; i++) {
                     let errorId = JSON.parse(this.errors[key][i]).id;
-                    console.log(errorId);
                     if(errorId === id) {
                         _key = key;
                         index = i;
@@ -307,7 +305,7 @@
             let error = Page_Error.deserialize(this.errors[location.key][location.index]);
             error.addChange(change);
 
-            this.errors[location.key][location.id] = error.serialize();
+            this.errors[location.key][location.index] = error.serialize();
         }
 
         removeChangeFromError(id, change) {
@@ -318,7 +316,7 @@
             let error = Page_Error.deserialize(this.errors[location.key][location.index]);
             error.removeChange(change);
 
-            this.errors[location.key][location.id] = error.serialize();
+            this.errors[location.key][location.index] = error.serialize();
         }
 
         errorArrayExists(e) {
@@ -491,7 +489,6 @@
         //setup to find the index of current node
         let offset = 0;//account for invisible '#text' nodes
         for(let i = 0; i < node.parentNode.childNodes.length; i++) {
-            console.log(node.parentNode.childNodes[i].nodeName);
             if(node.parentNode.childNodes[i].nodeName === '#text') {offset++;}
             if(node === node.parentNode.childNodes[i]) {                
                 //add index to node path string
@@ -523,7 +520,6 @@
     */
     const searchNode = (parentEl, _indexes) => {
         let indexes = _indexes.toString().split('$');//split path
-        console.log(indexes);
         //array needs to have elements
         if(indexes.length < 1) {
             throw new Error('array needs to have elements');
@@ -537,10 +533,6 @@
         let index = (window.location.href.includes('edit')) ? 
         parseInt(number1 - number2) : number1;
 
-        console.log(index);
-        console.log(parentEl);
-        console.log(parentEl.childNodes[index]);
-
         //if there is only a single element left
         //return desired node
         if(indexes.length < 2) {
@@ -548,7 +540,6 @@
         }
 
         //recurse to locate node 
-        console.log(parentEl.childNodes[parseInt(index)]);
         return searchNode(parentEl.childNodes[parseInt(index)], indexes.join('$'));
     }
 
@@ -1008,7 +999,6 @@
      * @param {Array<Page_Error>} errors a list of serialized Page Error objects 
      */
     const displayErrors = (errors) => {
-        errors.forEach(e => { console.log(Page_Error.deserialize(e))})
         //list of ranges
         //list is used to avoid altering elements until end
         let ranges = new Array()
@@ -1027,7 +1017,6 @@
             let range = document.createRange()//new display range
             let node;//node to find
             if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
-                console.log(_e);
                 node = searchNode(contentEl,updateSearchPath(_e.path, -1));
             } else {
                 node = searchNode(contentEl, _e.path);
@@ -1060,7 +1049,6 @@
                 node = searchNode(contentEl, r.error.path);
             }
 
-            console.log(r.error);
             if(r.isElement) {//if error is full element, add class
                 node.id = r.error.id;
                 node.classList.add('highlight');
@@ -1155,23 +1143,25 @@
 
         //update error based on changes
         Object.keys(error.changes).forEach(key => {
-            if(key === 'italic') {
-                node.querySelector('input').classList.add('italic');
+            if (key === 'italic') {
+                console.log('italicized');
+                console.log(node);
+                node.classList.add('italic');
             }
 
-            if(key === 'bold') {
+            if (key === 'bold') {
                 node.querySelector('input').classList.add('bold');
             }
 
-            if(key === 'delete') {
+            if (key === 'delete') {
                 node.querySelector('input').classList.add('strikethrough');
             }
 
-            if(key === 'highlight') {
+            if (key === 'highlight') {
                 node.querySelector('input').classList.add('highlight');
             }
 
-            if(key === 'lowercase') {
+            if (key === 'lowercase') {
                 node.querySelector('input').value = node.querySelector('input').value.toLowerCase();
             }
         })
@@ -1318,6 +1308,8 @@
         module.setModuleItem(moduleItem)
         course.setModule(module);
 
+
+        console.log(moduleItem);
         saveCourse(course.serialize());
     }
 
@@ -1335,6 +1327,8 @@
     const saveCourse = (course) => {
         chrome.storage.local.set({
             [Course.deserialize(course).id]: course,
+        }).then(result => {
+            console.log(result);
         })
     }
 
@@ -1473,7 +1467,6 @@
 
             //new page request
             if (type === "NEW") {
-                console.log('new window');
                 if (window.location.href.includes(".instructure.com/courses/") && !window.location.href.includes("modules")) {
                     if (window.location.href.includes("quizzes") || window.location.href.includes("pages") ||
                         window.location.href.includes("discussion_topics") || window.location.href.includes("assignments")) {
@@ -1509,9 +1502,6 @@
                             styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
                             iframeDocument.head.appendChild(styleEl);//append to head
                         }
-
-                        console.log(contentEl);
-                        console.log(...contentEl.childNodes);
 
                         /* Load stylesheet into current document */
 
@@ -1606,7 +1596,6 @@
             }
 
             if (type === "SHOW-ERROR") {
-                console.log(url);
                 window.location.replace(url)
                 return;
             }
@@ -1616,7 +1605,6 @@
             }
 
             if (type === "REDIRECT-PAGE") {
-                console.log('clicked');
                 window.location.href = url;
             }
 

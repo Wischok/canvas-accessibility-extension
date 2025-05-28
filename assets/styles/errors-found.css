@@ -80,19 +80,19 @@
     object-fit: contain;
 }
 
-.bold {
+.bold, .bold input {
     font-weight: 700;
 }
 
-.highlight {
+.highlight, .highlight input {
     background-color: rgb(255, 255, 114) !important;
 }
 
-.italic {
+.italic,.italic input  {
     font-style: italic;
 }
 
-.strikethrough {
+.strikethrough, .strikethrough input {
     text-decoration: line-through;
 }
 
