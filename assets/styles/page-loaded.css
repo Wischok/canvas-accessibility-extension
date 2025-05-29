@@ -2,14 +2,6 @@ p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover {
     background-color: rgb(225, 225, 225) 
 } 
 
-.red {
-    background-color: red
-} 
-
-.error-blank-line {
-    background-color: yellow
-}
-
 h1 {
     position: relative; 
 }
@@ -130,11 +122,13 @@ h6::after {
     text-align: center;
 } 
 
-.img-display-alt img{
+.user_content img,
+#content img {
     position: relative;
 }
 
-.img-display-alt img::after {
+.user_content img::after,
+#content img::after {
     width: 100%;
     height: min-content;
     content: "alt: " attr(alt);
