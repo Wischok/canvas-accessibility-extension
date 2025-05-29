@@ -130,7 +130,7 @@ h6::after {
 .user_content p:first-child:is(img)::after,
 #content p:first-child:is(img)::after {
     width: 100%;
-    height: max-content;
+    height: 2lh;
     max-height: 20%;
     content: attr(alt);
     background-color: black;
