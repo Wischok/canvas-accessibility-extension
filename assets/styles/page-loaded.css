@@ -130,7 +130,8 @@ h6::after {
 .user_content img::after,
 #content img::after {
     width: 100%;
-    height: min-content;
+    height: 3rem;
+    max-height: 20%;
     content: "alt: " attr(alt);
     background-color: black;
     color: white;
