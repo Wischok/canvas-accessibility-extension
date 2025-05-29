@@ -108,6 +108,11 @@
     padding: 3px;
 }
 
+.error-found-input .editor-console ul li:has(#ec-delete) button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .error-found-input .editor-console ul li button:hover {
     background-color: #bcbcbc;
 }
