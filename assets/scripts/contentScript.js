@@ -1190,27 +1190,7 @@
             }
 
             if (r.isElement) {//if error is full element, add class
-                node.id = r.error.id;
-                node.classList.add('highlight');
-
-                //update error based on changes
-                Object.keys(r.error.changes).forEach(key => {
-                    if (key === 'italic') {
-                        node.classList.add('italic');
-                    }
-
-                    if (key === 'bold') {
-                        node.classList.add('bold');
-                    }
-
-                    if (key === 'delete') {
-                        node.classList.add('strikethrough');
-                    }
-
-                    if (key === 'highlight') {
-                        node.classList.add('highlight');
-                    }
-                })
+                createEditableErrorElement(r.range, r.error);
             } else {//if partial element, wrap in span
                 createEditableErrorInput(r.range, r.error);
             }
@@ -1218,7 +1198,7 @@
     }
 
     /**
-     * create an editable region for the specified text of an accessbility error
+     * create an editable input region for the specified text of an accessbility error
      * @param {Range} range the range showing the errors location 
      * @param {Page_Error} error the associated accessibility error 
      */
@@ -1326,6 +1306,11 @@
         })
     }
 
+    /**
+     * create an editable element console region for the specified text of an accessbility error
+     * @param {Range} range the range showing the errors location 
+     * @param {Page_Error} error the associated accessibility error 
+     */
     const createEditableErrorElement = async (range, error) => {
         //copy html chunk to replicate for each error
         let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input.element').cloneNode(true);
@@ -1365,12 +1350,7 @@
         node.querySelector('#ec-delete').addEventListener('click', deleteError.bind(this, node.id))
 
         //create span to wrap inner text with
-        let span = document.createElement('span');
-        span.id = 'REPLACE-ELEMENT';
-        range.surroundContents(span);
-
-        //replace previous span with error node
-        contentEl.querySelector('#REPLACE-ELEMENT').replaceWith(node);
+        range.surroundContents(node);
     }
 
     //toggle display class on element interacted with
