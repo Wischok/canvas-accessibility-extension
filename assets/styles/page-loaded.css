@@ -162,6 +162,7 @@ h6::after {
     flex-direction: row;
     align-items: center;
     z-index: 999;
+    display: none;
 }
 
 .add-error-button button {
@@ -191,12 +192,6 @@ h6::after {
 }
 
 /* combobox styling */
-.add-error-button {
-    display: flex;
-    position: relative;
-    flex-grow: 1;
-    max-width: 200px;
-}
 
 .add-error-button .combo {
     flex-grow: 1;
@@ -205,22 +200,22 @@ h6::after {
     left: 2.1rem;
     top: -2px;
     background: whitesmoke;
-    border: 2px solid black;
     border-radius: 5px;
-    display: none;
 }
 
 .add-error-button .combo-input {
     font-family: "Quicksand", sans-serif;
     font-weight: 600;
-    height: 1.7rem;
+    height: 2rem;
     padding-left: 1rem;
     border-radius: 7px;
     display: flex;
     align-items: center;
     border: #0d0d0d 2px solid;
-    width: 100%;
+    width: 250px;
     margin: 0;
+    box-sizing: border-box;
+    margin-top: 2px;
 }
 
 .add-error-button .combo-input[aria-expanded='true'] {
@@ -242,13 +237,12 @@ h6::after {
 }
 
 .add-error-button .combo-menu {
-    width: 100%;
+    width: 250px;
     border: #0d0d0d solid 1px;
     position: absolute;
     z-index: 1;
     background-color: #e4e4e4;
     display: none;
-    max-height: 10rem;
     overflow-y: scroll;
     overflow-x: hidden;
     height: 300px;

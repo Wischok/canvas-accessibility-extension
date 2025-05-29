@@ -835,7 +835,7 @@ function createCombo(id) {
     let _errors = new Array();
     let contentEl;
     const textLookUp = "#:~:text=";
-    let activeElement = null;
+    let activeElement = null, activeRange = null;
     /* HTML Chunks to insert into DOM */
 
     //HTML CHunks reference document; to query for needed chunks
@@ -1149,10 +1149,55 @@ function createCombo(id) {
 
     const setErrorBtn = () => {
         let btn = document.querySelector('body').appendChild(HTML_CHUNK_REF_DOC.querySelector('.add-error-button').cloneNode(true));
-        
         createCombo('CAT-combo1');
+
+        //event listerner: add new error
+        btn.addEventListener('click', addError.bind());
         
         console.log(btn);
+    }
+
+    /**
+     * Add error to course
+     */
+    const addError = () => {
+        //find course
+        let course;
+        chrome.storage.local.get().then(result => {
+            Object.keys(result).forEach(key => {
+                //find current course
+                if (window.location.href.includes(key)) {
+                    course = Course.deserialize(result[key]);
+                }
+            })
+        })
+
+        //find page and module
+        let moduleItem = ModuleItem.deserialize(course.fetchModuleItem(window.location.href));
+        let module = Module.deserialize(course.fetchModule(window.location.href));
+
+        if (activeRange) {
+            moduleItem.addError(
+                new Page_Error(
+                    document.getElementById('error-type').value,
+                    buildNodePath(activeElement),
+                    Page_Error.generateRandomId(errorType),
+                    activeRange.startOffset,
+                    activeRange.endOffset,
+                    activeRange.toString(),
+                ).serialize()
+            );
+        }
+
+        module.setModuleItem(moduleItem)
+        course.setModule(module);
+
+        saveCourse(course.serialize());
+
+        activeElement = null;
+        activeRange = null;
+
+        document.getElementById('add-error-button').classList.remove('display');
     }
 
     /**
@@ -2127,12 +2172,19 @@ function createCombo(id) {
         //get current window selection
         let selection = getSelection();
 
-        //if selection is text
-        if(selection.toString().length > 0) {
-            console.log(selection.toString());
-        } else {
-            console.log(selection.focusNode.parentElement);
+        //if selected element exists within contentel
+        if (contentEl.contains(selection.focusNode.parentElement)) {
+            //if selection is text
+            if (selection.toString().length > 0) {
+                activeElement = selection.focusNode.parentElement;
+                activeRange = selection.getRangeAt(0);
+            } else {
+                activeElement = selection.focusNode.parentElement;
+                activeRange = null;
+            }
         }
+
+        document.getElementById('add-error-button').classList.add('display');
     }
 
     const removeErrorFromDom = (node, error) => {
