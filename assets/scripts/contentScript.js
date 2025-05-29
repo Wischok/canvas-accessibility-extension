@@ -2,6 +2,7 @@
     let _errors = new Array();
     let contentEl;
     const textLookUp = "#:~:text=";
+    let activeElement = null;
 
     class Course {
 
@@ -276,8 +277,7 @@
             }
         }
 
-        findError(id) {
-            
+        findErrorLocation(id) {
             let _key, index;
             Object.keys(this.errors).forEach(key => {
                 for(let i = 0; i < this.errors[key].length; i++) {
@@ -299,7 +299,7 @@
 
         addChangeToError(id, change) {
             //grab location of error
-            const location = this.findError(id);
+            const location = this.findErrorLocation(id);
             
             //deserealize error and add change
             let error = Page_Error.deserialize(this.errors[location.key][location.index]);
@@ -310,7 +310,7 @@
 
         removeChangeFromError(id, change) {
             //grab location of error
-            const location = this.findError(id);
+            const location = this.findErrorLocation(id);
             
             //deserealize error and add change
             let error = Page_Error.deserialize(this.errors[location.key][location.index]);
@@ -415,7 +415,7 @@
     /* HTML Chunks to insert into DOM */
 
     //HTML CHunks reference document; to query for needed chunks
-    let HTML_CHUNK_REF_DOC, CSS_CHUNK; 
+    let HTML_CHUNK_REF_DOC, CSS_CHUNK, addErrorBtn; 
 
     /* Helpful Functions */
     
@@ -721,6 +721,11 @@
         })
         
         return errorsFoundList;
+    }
+
+    const setErrorBtn = () => {
+        let btn = document.getElementById('menu').appendChild(HTML_CHUNK_REF_DOC.querySelector('add-error-button').cloneNode(true));
+        console.log(btn);
     }
 
     /**
@@ -1431,6 +1436,8 @@
                 })
             })
         }
+
+        
     }
 
     const removeSelection = (id) => {
@@ -1463,6 +1470,8 @@
                 })
             })
         }
+
+        
     }
 
     //toggle italic class on element based on id given
@@ -1496,6 +1505,8 @@
                 })
             })
         }
+
+        
     }
 
     const addChange = (course, id, change) => {
@@ -1545,25 +1556,39 @@
                 }
             })
         })
+        
     }
 
     const deleteError = async (id) => {
         //grab node / element to remove from DOM
         let node = document.getElementById(id);
 
-        let error = await chrome.runtime.sendMessage({type: "REMOVE-ERROR", error_id: id});
+        let course;//course var
+        await chrome.storage.local.get().then(result => {//grab course from save
+            Object.keys(result).forEach(key => {
+                //find current course
+                if (window.location.href.includes(key)) {
+                    course = Course.deserialize(result[key]);
+                }
+            })
+        })
 
-        console.log(Page_Error.deserialize(error));
-        return;
+        //find module item and module
+        let moduleItem = ModuleItem.deserialize(course.fetchModuleItem(window.location.href));
+        let module = Module.deserialize(course.fetchModule(window.location.href));
 
-        //remove element from DOM and replace with text
-        if(node.querySelector('input')) {
-            let input  = node.querySelector('input');
+        //remove error
+        let error = moduleItem.removeError(id);
+        module.setModuleItem(moduleItem)
+        course.setModule(module);
+        course.errorCount--;
 
+        //save course with removed error
+        saveCourse(course.serialize());
 
-        }
-
-        //remove error from extension popup
+        //remove error from DOM
+        removeErrorFromDom(node, Page_Error.deserialize(error));
+        
     }
 
     const toggleHighlight = (id) => {
@@ -1606,11 +1631,19 @@
         styleEl.innerText = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/page-loaded.css');
         document.head.appendChild(styleEl);
 
-        //display image alt text
+        //if not on edit page
         if (!window.location.href.includes('edit')) {
+            //add error btn to DOM
+            addErrorBtn();
+
+            //add mouse up functio to contentEl
+            contentEl.addEventListener('mouseup', addErrorContextMenu.bind(window.getSelection()));
+
+            //display image alt text
             contentEl.querySelectorAll("img").forEach((el) => {
                 el.parentElement.setAttribute('alt', el.getAttribute('alt'));
             });
+
         }
 
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});
@@ -1650,15 +1683,48 @@
 
     const getSelection = () => {
         var seltxt = '';
-         if (window.getSelection) { 
-             seltxt = window.getSelection(); 
-         } else if (document.getSelection) { 
-             seltxt = document.getSelection(); 
-         } else if (document.selection) { 
-             seltxt = document.selection.createRange().text; 
-         }
-        else return;
+        if (window.getSelection) {
+            seltxt = window.getSelection();
+        } else if (document.getSelection) {
+            seltxt = document.getSelection();
+        } else if (document.selection) {
+            seltxt = document.selection.createRange().text;
+        }
+        else return null;
         return seltxt;
+    }
+
+    const addErrorContextMenu = () => {
+        //get current window selection
+        let selection = getSelection();
+
+        //if selection is text
+        if(selection.toString().length > 0) {
+            console.log(selection.toString());
+        } else {
+            console.log(selection.focusNode.parentElement);
+        }
+    }
+
+    const removeErrorFromDom = (node, error) => {
+        console.log(error);
+        //create span to replace error node
+        let span = document.createElement('span');
+
+        //if not an element based error (has an input)
+        if(!node.classList.contains('element')) {
+            span.innerText = error.match;//set inner text
+            node.replaceWith(span);//replace
+        }else {//if an element based error (does not have an input)
+            //remove editor console from node
+            node.removeChild(node.querySelector('.editor-console'));
+
+            //save inner HTML to span
+            span.innerHTML = node.innerHTML;
+
+            //replace error node with updated span
+            node.replaceWith(span);
+        }
     }
 
     /**
