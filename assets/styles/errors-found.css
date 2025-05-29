@@ -65,12 +65,38 @@
     background-color: white;
     border: 1px solid rgb(138, 138, 138);
     list-style-type: none;
-    padding-inline: 10px;
+    padding-left: 10px;
     border-radius: 3px;
 }
 
 .error-found-input .editor-console ul li {
     border-radius: 3px;
+}
+
+.error-found-input .editor-console ul li:has(#ec-delete) {
+    background-color: black;
+}
+
+.error-found-input .editor-console ul li:has(#ec-delete)::after {
+    content: "";
+    height: 100%;
+    width: 5px;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: white;
+    top: 0;
+    left: -5px;
+    z-index: 2;
+}
+
+.error-found-input .editor-console ul li:has(#ec-delete)::before {
+    content: "";
+    height: 100%;
+    width: 5px;
+    background-color: black;
+    top: 0;
+    left: -5px;
+    z-index: 1;
 }
 
 .error-found-input .editor-console ul li button {
@@ -132,7 +158,7 @@ p:has(img.highlight) {
 }
 
 .error-found-input.element.strikethrough::after {
-    background-image: url('https://github.com/Wischok/canvas-accessibility-extension/blob/main/assets/images/x-white.png?raw=true');
+    background-image: url('https://github.com/Wischok/canvas-accessibility-extension/blob/main/assets/images/trash-white.png?raw=true');
     background-position: center;
     background-size: contain;
     content: "";
