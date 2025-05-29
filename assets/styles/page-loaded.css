@@ -207,6 +207,7 @@ h6::after {
     background: whitesmoke;
     border: 2px solid black;
     border-radius: 5px;
+    display: none;
 }
 
 .add-error-button .input-wrapper .combo-input {
