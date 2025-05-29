@@ -995,6 +995,78 @@
         });
     }
 
+    /* Course Generation */
+
+    /**
+     * generate course records and pass to extension for saving
+     * @returns {Course} a new instance of a course to save
+     */
+    const generateCourse = () => {
+        //declare course object
+        let courseId = window.location.href.split("instructure.com/")[1].split("/")[1];
+        let courseName = document.head.querySelector("title").innerHTML.replaceAll("Course Modules: ", "");
+        let course = new Course(courseId, "1.0.0", courseName);//current course version = 1.0.0
+        
+        /*add all modules to course*/
+        //grab module elements
+        let modules = document.getElementsByClassName("context_module");
+        let _modules = new Array();
+
+        //check elements for needed attributes and push to new array
+        for(let i = 0; i < modules.length; i++) {
+            if(modules[i].hasAttribute("data-module-id") && modules[i].getAttribute("data-module-id") != "{{ id }}") {_modules.push(modules[i]); }
+        }
+
+        //create new modules
+        for(let i = 0; i < _modules.length; i++) {
+            //create new module instance to be added
+            let moduleId = _modules[i].getAttribute("data-module-id");
+            let published = (_modules[i].getAttribute("data-workflow-state") === "active");
+            let title = _modules[i].querySelectorAll('span.name')[0].getAttribute('title');
+            let module = new Module(moduleId, title , published);
+
+            //create new pages (module items) for each module
+            let pages = _modules[i].querySelectorAll(".context_module_item");
+            for(let k = 0; k < pages.length; k++) {
+                //get module item / page information
+                const params = {
+                    moduleItemId: pages[k].getAttribute("id").replace("context_module_item_", ""),
+                    type: pages[k].querySelectorAll("span.type_icon")[0].getAttribute("title"),
+                    title: pages[k].querySelectorAll("a")[0].getAttribute("title"),
+                    url: "https://mtsac.instructure.com" + pages[k].querySelectorAll("a")[0].getAttribute("href"),
+                    id2: "",
+
+                }
+
+                //depending on specific page type, grab secondary id
+                if(params.type === "Quiz" || params.type === "Discussion Topic" || params.type === "Assignment") {
+                    params.id2 = pages[k].querySelectorAll("span.lock-icon")[0].getAttribute("data-content-id");
+                }
+                else {
+                    params.id2 = pages[k].querySelectorAll("div.ig-admin span.publish-icon")[0].getAttribute("data-module-item-name").toLowerCase().replaceAll(":", "").replaceAll('"',"").replaceAll(" ", "-").replaceAll("---", "-").replaceAll("--","-");
+                }
+
+                let item = new ModuleItem(params.moduleItemId, params.type, params.title, params.url, params.id2);
+
+                //add module item
+                module.addItem(item);
+            }
+
+            //if module has pages, add module to course 
+            if(module.count > 0) {course.addModule(module); }
+        }
+
+        console.log(course);
+        return(course.serialize());
+    }
+
+    const UpdateInputWidth = (id) => {
+        let input = document.getElementById(id).querySelector('input');
+        if (input.hasAttribute('style')) {
+            input.style.width = input.value.length.toString() + 'ch';
+        }
+    }
+
     /* Display Errors and User Edit Functions */
 
     /**
@@ -1254,74 +1326,8 @@
         })
     }
 
-    /* Course Generation Function */
-
-    //generate course records and pass to extension for saving
-    const generateCourse = () => {
-        //declare course object
-        let courseId = window.location.href.split("instructure.com/")[1].split("/")[1];
-        let courseName = document.head.querySelector("title").innerHTML.replaceAll("Course Modules: ", "");
-        let course = new Course(courseId, "1.0.0", courseName);//current course version = 1.0.0
+    const createEditableErrorElement = async (range, error) => {
         
-        /*add all modules to course*/
-        //grab module elements
-        let modules = document.getElementsByClassName("context_module");
-        let _modules = new Array();
-
-        //check elements for needed attributes and push to new array
-        for(let i = 0; i < modules.length; i++) {
-            if(modules[i].hasAttribute("data-module-id") && modules[i].getAttribute("data-module-id") != "{{ id }}") {_modules.push(modules[i]); }
-        }
-
-
-        //create new modules
-        for(let i = 0; i < _modules.length; i++) {
-            //create new module instance to be added
-            let moduleId = _modules[i].getAttribute("data-module-id");
-            let published = (_modules[i].getAttribute("data-workflow-state") === "active");
-            let title = _modules[i].querySelectorAll('span.name')[0].getAttribute('title');
-            let module = new Module(moduleId, title , published);
-
-            //create new pages (module items) for each module
-            let pages = _modules[i].querySelectorAll(".context_module_item");
-            for(let k = 0; k < pages.length; k++) {
-                //get module item / page information
-                const params = {
-                    moduleItemId: pages[k].getAttribute("id").replace("context_module_item_", ""),
-                    type: pages[k].querySelectorAll("span.type_icon")[0].getAttribute("title"),
-                    title: pages[k].querySelectorAll("a")[0].getAttribute("title"),
-                    url: "https://mtsac.instructure.com" + pages[k].querySelectorAll("a")[0].getAttribute("href"),
-                    id2: "",
-
-                }
-
-                //depending on specific page type, grab secondary id
-                if(params.type === "Quiz" || params.type === "Discussion Topic" || params.type === "Assignment") {
-                    params.id2 = pages[k].querySelectorAll("span.lock-icon")[0].getAttribute("data-content-id");
-                }
-                else {
-                    params.id2 = pages[k].querySelectorAll("div.ig-admin span.publish-icon")[0].getAttribute("data-module-item-name").toLowerCase().replaceAll(":", "").replaceAll('"',"").replaceAll(" ", "-").replaceAll("---", "-").replaceAll("--","-");
-                }
-
-                let item = new ModuleItem(params.moduleItemId, params.type, params.title, params.url, params.id2);
-
-                //add module item
-                module.addItem(item);
-            }
-
-            //if module has pages, add module to course 
-            if(module.count > 0) {course.addModule(module); }
-        }
-
-        console.log(course);
-        return(course.serialize());
-    }
-
-    const UpdateInputWidth = (id) => {
-        let input = document.getElementById(id).querySelector('input');
-        if (input.hasAttribute('style')) {
-            input.style.width = input.value.length.toString() + 'ch';
-        }
     }
 
     //toggle display class on element interacted with
@@ -1612,7 +1618,13 @@
         return seltxt;
     }
 
-    //set content el 
+    /**
+     * Function to be ran on Canvas 'edit' page. Updates each error depending on user created changes
+     * @param {Array<Page_Error>} errors a list of page errors used to display errors
+     */
+    const applyErrorChanges = (errors) => {
+
+    }
 
     chrome.runtime.onMessage.addListener(
         async function (request, sender, sendResponse) {
