@@ -122,17 +122,17 @@ h6::after {
     text-align: center;
 } 
 
-.user_content p:first-child:is(img),
-#content p:first-child:is(img),
-.user_content span:first-child:is(img),
-#content span:first-child:is(img) {
+.user_content p:has(> img:first-child),
+#content p:has(> img:first-child),
+.user_content span:has(> img:first-child),
+#content span:has(> img:first-child) {
     position: relative;
 }
 
-.user_content p:first-child:is(img)::after,
-#content p:first-child:is(img)::after,
-.user_content span:first-child:is(img)::after,
-#content span:first-child:is(img)::after {
+.user_content p:has(> img:first-child)::after,
+#content p:has(> img:first-child)::after,
+.user_content span:has(> img:first-child)::after,
+#content span:has(> img:first-child)::after {
     width: 100%;
     height: 2lh;
     max-height: 20%;

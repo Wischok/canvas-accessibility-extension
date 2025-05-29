@@ -1585,9 +1585,11 @@
         document.head.appendChild(styleEl);
 
         //display image alt text
-        contentEl.querySelectorAll("img").forEach((el) => { 
-            el.parentElement.classList.setAttribute('alt', el.getAttribute('alt'));
-        });
+        if (!window.location.href.includes('edit')) {
+            contentEl.querySelectorAll("img").forEach((el) => {
+                el.parentElement.classList.setAttribute('alt', el.getAttribute('alt'));
+            });
+        }
 
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});
     }
