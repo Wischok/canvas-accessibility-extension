@@ -123,13 +123,15 @@ h6::after {
 } 
 
 .user_content img,
-#content img {
+#content img,
+.user_content p:has(img),
+#content p:has(img) {
     position: relative;
 }
 
 .user_content img::after,
 #content img::after {
-    width: 100%;
+    width: 15rem;
     height: 3rem;
     max-height: 20%;
     content: "alt: " attr(alt);
