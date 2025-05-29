@@ -122,13 +122,13 @@ h6::after {
     text-align: center;
 } 
 
-.user_content p:has(img),
-#content p:has(img) {
+.user_content p:first-child:is(img),
+#content p:first-child:is(img) {
     position: relative;
 }
 
-.user_content p:has(img)::after,
-#content p:has(img)::after {
+.user_content p:first-child:is(img)::after,
+#content p:first-child:is(img)::after {
     width: 100%;
     height: max-content;
     max-height: 20%;
