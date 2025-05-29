@@ -46,6 +46,11 @@
     left: 0;
 }
 
+.error-found-input .editor-console.right {
+    left: auto;
+    right: 0;
+}
+
 .error-found-input .editor-console ul {
     display: flex;
     justify-content: space-between;

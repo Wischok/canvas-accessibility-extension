@@ -1194,7 +1194,7 @@
             } else {//if partial element, wrap in span
                 createEditableErrorInput(r.range, r.error);
             }
-        })
+        });
     }
 
     /**
@@ -1304,6 +1304,11 @@
                 node.querySelector('input').value = error.changes[key];
             }
         })
+
+        //if editor console is on right side of page
+        if(node.getBoundingClientRect().right < (window.innerWidth / 2)) {
+            node.querySelector('.editor-console').classList.add('right');
+        }
     }
 
     /**
