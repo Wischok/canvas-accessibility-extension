@@ -439,7 +439,7 @@
             document = doc;
         })
         .catch(error => {
-            console.error('failed ot fetch page: ', error);
+            console.error('failed to fetch HTML: ', error);
         })
 
         return document;
@@ -592,10 +592,10 @@
         let foundIssues = new Array();
 
         //check only against the current elements inner text; don't check inner text of children
-        let str = [].reduce.call(el.childNodes, function (a, b) { return a + (b.nodeType === 3 ? b.textContent : ''); }, '');
+        //let str = [].reduce.call(el.childNodes, function (a, b) { return a + (b.nodeType === 3 ? b.textContent : ''); }, '');
 
             //iterate through each found issue
-            while (match = regex.exec(str)) {
+            while (match = regex.exec(el.innerText)) {
                 //create error from location on page where it was found
                 foundIssues.push(
                     new Page_Error(
@@ -984,6 +984,9 @@
             //remove any undefined errors from audit
             errors = errors.filter(e => Page_Error.deserialize(e).name !== undefined);
 
+            console.log(errors);
+            errors.forEach(e => console.log(Page_Error.deserialize(e)));
+
             /* Diplay Errors on Web Page */
             displayErrors(errors);
 
@@ -1026,10 +1029,75 @@
             
             //display part of element
             if(_e.match.length > 0) {//if matched to instance within element
+                console.log(node);
 
-                //direct to area within element
-                range.setStart(node.firstChild, _e.startIndex);
-                range.setEnd(node.firstChild, _e.endIndex)
+                let start = _e.startIndex;//adjustable value for start index
+                //set range start and node
+                const setRangeRecursion_Start = (node) => {
+                    if(start < 0) {//skip the rest of recursion if solution is found
+                        return;
+                    }
+
+                    console.log(node.childNodes)
+
+                    //if node is an element node
+                    if (node.nodeType === 1) {
+
+                        //iterate through all child nodes
+                        node.childNodes.forEach(n => {
+                            setRangeRecursion_Start(n);
+                        })
+                    }
+
+                    //if node is a #text node
+                    if(node.nodeType === 3) {
+
+                         //check if start index fits within element string
+                        if (node.textContent.length > start) {
+                            console.log(node.textContent);
+                            range.setStart(node, start);
+                            start = -1;//set start to -1 as a form of skipping the rest of recursion
+                            return;
+                        }
+
+                        start -= node.textContent.length;
+                    } 
+                }
+
+                setRangeRecursion_Start(node);
+
+                let end = _e.endIndex;//adjustable value for end index
+                //set range end and node
+                const setRangeRecursion_End = (node) => {
+                    if(end < 0) {//skip the rest of recursion if solution is found
+                        return;
+                    }
+
+                    //if node is an element node
+                    if (node.nodeType === 1) {
+
+                        //iterate through all child nodes
+                        node.childNodes.forEach(n => {
+                            setRangeRecursion_End(n);
+                        })
+                    }
+
+                    //if node is a #text node
+                    if(node.nodeType === 3) {
+
+                        //check if start index fits within element string
+                        if (node.textContent.length > end) {
+                            console.log(node.textContent);
+                            range.setEnd(node, end);
+                            end = -1;//set start to -1 as a form of skipping the rest of recursion
+                            return;
+                        }
+
+                        end -= node.textContent.length;
+                    }
+                }
+
+                setRangeRecursion_End(node);
             
                 //add range to array as partial element
                 ranges.push(new x_Range(range, _e));
@@ -1043,15 +1111,34 @@
         ranges.forEach(r => {
             let node;//node to find
             //adjust search pattern if on edit page
-            if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+            if (window.location.href.includes('edit') && window.location.href.includes('pages')) {
                 node = searchNode(contentEl, updateSearchPath(r.error.path, -1));
             } else {
                 node = searchNode(contentEl, r.error.path);
             }
 
-            if(r.isElement) {//if error is full element, add class
+            if (r.isElement) {//if error is full element, add class
                 node.id = r.error.id;
                 node.classList.add('highlight');
+
+                //update error based on changes
+                Object.keys(r.error.changes).forEach(key => {
+                    if (key === 'italic') {
+                        node.classList.add('italic');
+                    }
+
+                    if (key === 'bold') {
+                        node.classList.add('bold');
+                    }
+
+                    if (key === 'delete') {
+                        node.classList.add('strikethrough');
+                    }
+
+                    if (key === 'highlight') {
+                        node.classList.add('highlight');
+                    }
+                })
             } else {//if partial element, wrap in span
                 createEditableErrorInput(r.range, r.error);
             }
@@ -1064,7 +1151,6 @@
      * @param {Page_Error} error the associated accessibility error 
      */
     const createEditableErrorInput = async (range, error) => {
-
         //copy html chunk to replicate for each error
         let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input').cloneNode(true);
         node.id = error.id;
@@ -1102,9 +1188,7 @@
 
         //add event listener on type.
         input.addEventListener('keydown', UpdateInputWidth.bind(this, node.id));
-        input.addEventListener('input', () => {
-            
-        })
+        input.addEventListener('input', updateErrorText.bind(this, node.id));
 
         //display editor console: add event listener to error node on focus and lose focus
         node.addEventListener('focusin', ToggleDisplay.bind());
@@ -1142,27 +1226,30 @@
         contentEl.querySelector('#REPLACE-ELEMENT').replaceWith(node);
 
         //update error based on changes
+        console.log(error.changes)
         Object.keys(error.changes).forEach(key => {
             if (key === 'italic') {
-                console.log('italicized');
-                console.log(node);
                 node.classList.add('italic');
             }
 
             if (key === 'bold') {
-                node.querySelector('input').classList.add('bold');
+                node.classList.add('bold');
             }
 
-            if (key === 'delete') {
-                node.querySelector('input').classList.add('strikethrough');
+            if (key === 'strikethrough') {
+                node.classList.add('strikethrough');
             }
 
             if (key === 'highlight') {
-                node.querySelector('input').classList.add('highlight');
+                node.classList.add('highlight');
             }
 
             if (key === 'lowercase') {
                 node.querySelector('input').value = node.querySelector('input').value.toLowerCase();
+            }
+
+            if (key === 'text') {
+                node.querySelector('input').value = error.changes[key];
             }
         })
     }
@@ -1246,33 +1333,93 @@
         }
     }
 
+    //save error text
+    const updateErrorText = (id) => {
+        let node = document.getElementById(id);
+
+        //update error within course save
+        chrome.storage.local.get().then(result => {
+            Object.keys(result).forEach(key => {
+                //find current course
+                if (window.location.href.includes(key)) {
+                    let course = Course.deserialize(result[key]);
+                    addChange(course, id, { key: 'text', value: node.querySelector('input').value });
+                }
+            })
+        })
+    }
+
     //toggle bold class on element based on id given
     const toggleBold = (id) => {
-        let input = document.getElementById(id).querySelector('input');
+        let node = document.getElementById(id);
 
-        if(input.classList.contains('bold')) {
-            input.classList.remove('bold')
-        }else {
-            input.classList.add('bold');
+        if (node.classList.contains('bold')) {
+            node.classList.remove('bold');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if (window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        removeChange(course, id, { key: 'bold', value: 'bold' });
+                    }
+                })
+            })
+        } else {
+            node.classList.add('bold');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if (window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        addChange(course, id, { key: 'bold', value: 'bold' });
+                    }
+                })
+            })
         }
     }
 
     const removeSelection = (id) => {
-        let input = document.getElementById(id).querySelector('input');
+        let node = document.getElementById(id);
 
-        if(input.classList.contains('strikethrough')) {
-            input.classList.remove('strikethrough')
-        }else {
-            input.classList.add('strikethrough');
+        if (node.classList.contains('strikethrough')) {
+            node.classList.remove('strikethrough');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if (window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        removeChange(course, id, { key: 'strikethrough', value: 'strikethrough' });
+                    }
+                })
+            })
+        } else {
+            node.classList.add('strikethrough');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if (window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        addChange(course, id, { key: 'strikethrough', value: 'strikethrough' });
+                    }
+                })
+            })
         }
     }
 
     //toggle italic class on element based on id given
     const toggleItalic = (id) => {
-        let input = document.getElementById(id).querySelector('input');
+        let node = document.getElementById(id);
 
-        if(input.classList.contains('italic')) {
-            input.classList.remove('italic');
+        if(node.classList.contains('italic')) {
+            node.classList.remove('italic');
 
             //update error within course save
             chrome.storage.local.get().then(result => {
@@ -1285,7 +1432,7 @@
                 })
             })
         }else {
-            input.classList.add('italic');
+            node.classList.add('italic');
 
             //update error within course save
             chrome.storage.local.get().then(result => {
@@ -1336,6 +1483,17 @@
         let input = document.getElementById(id).querySelector('input');
 
         input.value = input.value.toLowerCase();
+
+        //update error within course save
+        chrome.storage.local.get().then(result => {
+            Object.keys(result).forEach(key => {
+                //find current course
+                if (window.location.href.includes(key)) {
+                    let course = Course.deserialize(result[key]);
+                    addChange(course, id, { key: 'lowercase', value: 'lowercase' });
+                }
+            })
+        })
     }
 
     const deleteError = async (id) => {
@@ -1358,51 +1516,46 @@
     }
 
     const toggleHighlight = (id) => {
-        let input = document.getElementById(id).querySelector('input');
+        let node = document.getElementById(id);
 
-        if(input.classList.contains('highlight')) {
-            input.classList.remove('highlight')
+        if(node.classList.contains('highlight')) {
+            node.classList.remove('highlight');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if(window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        removeChange(course, id, {key: 'highlight', value: 'highlight'});
+                    }
+                })
+            })
         }else {
-            input.classList.add('highlight');
+            node.classList.add('highlight');
+
+            //update error within course save
+            chrome.storage.local.get().then(result => {
+                Object.keys(result).forEach(key => {
+                    //find current course
+                    if(window.location.href.includes(key)) {
+                        let course = Course.deserialize(result[key]);
+                        addChange(course, id, {key: 'highlight', value: 'highlight'});
+                    }
+                })
+            })
         }
     }
 
     const NewCoursePageLoaded = async () => {
+        //create style el
         //display accessibility elements for aiding visual review
         let styleEl = document.createElement('style');
         styleEl.type = 'text/css';
-        styleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow}';
-        document.head.appendChild(styleEl);
-        
-        //add cursor console for adding errors
-        let consoleEl = document.createElement('style');
-        consoleEl.innerText = 'p:hover,h1:hover,h2:hover,h3:hover,h4:hover,h5:hover,h6:hover { background-color: rgb(225, 225, 225) } .red {background-color: red} .error-blank-line {background-color: yellow} h1 {position: relative; } h1::after {content: "h1"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h2 {position: relative; } h2::after {content: "h2"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h3 {position: relative; } h3::after {content: "h3"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h4 {position: relative; } h4::after {content: "h4"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h5 {position: relative; } h5::after {content: "h5"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} h6 {position: relative; } h6::after {content: "h6"; position: absolute; width: 3rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; text-align: center;} .image-block-alt-display-setup {position: relative; display: block;} .image-block-alt-display {position: absolute; padding-inline:1rem; height: 2rem; font-size: 15px; background-color: black; color: white; bottom: 0; left: 0; display: flex; justify-content: start; align-items: center; text-align: start;}' ;
-        document.head.appendChild(consoleEl);
+        styleEl.innerText = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/page-loaded.css');
+        document.head.appendChild(await fetchCSSChunk());
 
-        const addClass = (name) => {
-            let elements = contentEl.querySelectorAll(name);
-            if(elements != undefined && elements != null) {
-                if(elements.length > 0) {
-                    elements.forEach((el) => {
-                        el.classList.add("." + name);
-                    })
-                }
-            }
-        }
-
-        addClass('h1');
-        addClass('h2');
-        addClass('h3');
-        addClass('h4');
-        addClass('h5');
-        addClass('h6');
-
-        contentEl.querySelectorAll('p').forEach((el) => {
-            if(el.innerHTML === "&nbsp;") {
-                el.classList.add("error-blank-line");
-            }
-        })
-
+        //display image alt text
         contentEl.querySelectorAll("img").forEach((el) => { 
             el.parentElement.classList.add('image-block-alt-display-setup');
             let alt = document.createElement('span');
@@ -1484,7 +1637,7 @@
                             contentEl = document.querySelectorAll('div.user_content')[0];
                         }
                         else if (window.location.href.includes('discussion_topics')) {
-                            contentEl = document.querySelectorAll('div.userMessage')[0];
+                            contentEl = document.querySelectorAll('span.user_content')[0];
                         }
                         else {
                             contentEl = document.querySelectorAll('#assignment_show div.description')[0];
