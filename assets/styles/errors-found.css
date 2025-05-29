@@ -124,31 +124,19 @@ p:has(img.highlight) {
 
 .error-found-input.element.strikethrough {
     text-decoration: none;
-    overflow: hidden;
     border: none;
     opacity: .5;
 }
 
 .error-found-input.element.strikethrough::after {
-    content: "";
-    width: 100%;
-    height: 10px;
+    content: "Element Deleted";
+    width: 2rem;
+    height: 100%;
     background-color: rgba(145, 44, 28, 0.75);
     position: absolute;
-    transform: rotate(45deg);
-    bottom: 50%;
+    bottom: 0;
     left: 0;
-}
-
-.error-found-input.element.strikethrough::before {
-    content: "";
-    width: 100%;
-    height: 10px;
-    background-color: rgba(145, 44, 28, 0.75);
-    position: absolute;
-    transform: rotate(-45deg);
-    top: 50%;
-    left: 0;
+    color: white;
 }
 
 .error-found-input.element:hover {

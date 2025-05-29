@@ -1278,7 +1278,6 @@
         contentEl.querySelector('#REPLACE-ELEMENT').replaceWith(node);
 
         //update error based on changes
-        console.log(error.changes)
         Object.keys(error.changes).forEach(key => {
             if (key === 'italic') {
                 node.classList.add('italic');
@@ -1353,7 +1352,27 @@
         //create span to wrap inner text with
         range.surroundContents(node);
 
+        //append editor console
         node.appendChild(editorConsole);
+
+        //update error based on changes
+        Object.keys(error.changes).forEach(key => {
+            if (key === 'italic') {
+                node.classList.add('italic');
+            }
+
+            if (key === 'bold') {
+                node.classList.add('bold');
+            }
+
+            if (key === 'strikethrough') {
+                node.classList.add('strikethrough');
+            }
+
+            if (key === 'highlight') {
+                node.classList.add('highlight');
+            }
+        })
     }
 
     //toggle display class on element interacted with
