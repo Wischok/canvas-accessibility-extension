@@ -161,9 +161,7 @@ h6::after {
     gap: 10px;
     flex-direction: row;
     align-items: center;
-    box-shadow: 0px 0px 16px 4px rgba(105, 149, 110, 0.75);
-    -webkit-box-shadow: 0px 0px 16px 4px rgba(105, 149, 110, 0.75);
-    -moz-box-shadow: 0px 0px 16px 4px rgba(105, 149, 110, 0.75);
+    z-index: 999;
 }
 
 .add-error-button button {
@@ -177,6 +175,9 @@ h6::after {
     display: flex;
     justify-content: center;
     align-items: center;
+    box-shadow: 0px 0px 16px 4px rgba(105, 149, 110, 0.75);
+    -webkit-box-shadow: 0px 0px 16px 4px rgba(105, 149, 110, 0.75);
+    -moz-box-shadow: 0px 0px 16px 4px rgba(105, 149, 110, 0.75);
 }
 
 .add-error-button button .retract {
@@ -218,6 +219,7 @@ h6::after {
     align-items: center;
     border: #0d0d0d 2px solid;
     width: 100%;
+    margin: 0;
 }
 
 .add-error-button .input-wrapper .combo-input[aria-expanded='true'] {
@@ -249,6 +251,7 @@ h6::after {
     overflow-y: scroll;
     overflow-x: hidden;
     height: 300px;
+    display: none;
 }
 
 .add-error-button .open .combo-menu {
