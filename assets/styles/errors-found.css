@@ -47,7 +47,7 @@
 }
 
 .error-found-input.element .editor-console {
-    top: -1.8rem;
+    top: -1.7rem;
     z-index: 999;
     bottom: auto;
 }
@@ -156,6 +156,7 @@ p:has(img.highlight) {
 .error-found-input.element.strikethrough {
     text-decoration: none;
     border: none;
+    background-color: rgb(255, 255, 114);
 }
 
 .error-found-input.element.strikethrough > *:not(.editor-console) {
