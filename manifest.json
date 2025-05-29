@@ -10,6 +10,8 @@
     },
     "content_scripts": [
         {
+            "combobox": ["assets/scripts/combobox2"],
+            "classes": ["assets/scripts/classes"],
             "matches": ["https://*.instructure.com/*"],
             "js": ["assets/scripts/contentScript.js"]
         }

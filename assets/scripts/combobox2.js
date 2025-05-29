@@ -426,14 +426,8 @@ Select.prototype.updateMenuState = function (open, callFocus = true) {
     callFocus && this.comboEl.focus();
 }
 
-//init select
-window.addEventListener('load', function () {
-    const combo = document.getElementById("combo1");
-    if(combo.classList.contains("init")) {
-        return;
-    }
-    else {
-        combo.classList.add("init");
-        new Select(combo);
-    }
-});
+export function createCombo(id) {
+    const combo = document.getElementById(id);
+
+    new Select(combo);
+}

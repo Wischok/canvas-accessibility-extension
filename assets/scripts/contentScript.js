@@ -1,417 +1,841 @@
+class Course {
+
+    constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
+        this.modules = modules;
+        this.moduleCount = moduleCount;
+        this.id = courseId;
+        this.errorCount = errorCount;
+        this.version = version;
+        this.title = title
+        this.professorName = professorName
+    }
+
+    addModule(module) {//add new module
+        this.moduleCount++;
+        this.modules[module.id] = module.serialize();
+        return this.modules[module.id];
+    }
+
+    hasModule(moduleId) {
+        this.modules.forEach((mod) => {
+            let m = Module.deserialize(mod);
+            if (m.id === moduleId) {
+                return m;
+            }
+        })
+
+        return -1;
+    }
+
+    gatherErrorCount() {
+        let count = 0
+        Object.keys(this.modules).forEach((key) => {
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((key) => {
+                let i = ModuleItem.deserialize(m.moduleItems[key]);
+
+                count += i.count;
+            })
+        })
+
+        return count;
+    }
+
+    setProfName(name) { this.professorName = name; }
+
+    modulesCheckedCount() {
+        let count = 0;
+        Object.keys(this.modules).forEach((key) => {
+            let m = Module.deserialize(this.modules[key]);
+
+            if (m.checked()) {
+                count++;
+            }
+        })
+
+        return count;
+    }
+
+    setModule(module) {
+        this.modules[module.id] = module.serialize();
+    }
+
+    addError(e, pageId) {
+        //returns desired module (or a new copy if it doesn't exist) as Module Item
+        Object.keys(this.modules).forEach((key) => {
+            let module = Module.deserialize(this.modules[key]);
+
+            Object.keys(module.moduleItems).forEach((_key) => {
+                let item = ModuleItem.deserialize(module.moduleItems[_key]);
+
+                if (item.id = pageId) {
+                    item.addError(e);
+                    module.moduleItems[_key] = item.serialize();
+                    this.modules[key] = module.serialize();
+                }
+            })
+        });
+        this.totalErrors += 1;
+    }
+
+    removeError(errorId, saveInfo) {
+        //returns desired module (or a new copy if it doesn't exist) as Module Item
+        _module.removeError(errorId, saveInfo);
+        this.setModule(_module);
+        this.totalErrors--;
+    }
+
+    fetchModuleItem(url) {
+        let moduleItem;
+        Object.keys(this.modules).forEach((key) => {
+            if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((_key) => {
+                if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
+                let i = ModuleItem.deserialize(m.moduleItems[_key]);
+
+                //check by module item id
+                if (url.includes(i.id)) {
+                    moduleItem = i;
+                }
+
+                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                if (url.includes(i.id2)) {
+                    moduleItem = i;
+                }
+            })
+        })
+
+        return moduleItem.serialize();
+    }
+
+    fetchModule(url) {
+        let module;
+        Object.keys(this.modules).forEach((key) => {
+            if (module != null && module != undefined) { return module; }
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((_key) => {
+                if (module != null && module != undefined) { return module; }
+                let i = ModuleItem.deserialize(m.moduleItems[_key]);
+
+                //check by module item id
+                if (url.includes(i.id)) {
+                    module = m;
+                }
+
+                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                if (url.includes(i.id2)) {
+                    module = m;
+                }
+            })
+        })
+
+        return module.serialize();
+    }
+
+    serialize() {//serialize course for JSON
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
+    }
+}
+class Module {
+
+    constructor(number, title, published = true, moduleItems = {}, count = 0) {
+        this.moduleItems = moduleItems;
+        this.count = count;
+        this.id = number;
+        this.errorCount;
+        this.title = title;
+        this.published = published;
+    }
+
+    addItem(item) {
+        this.count++;
+        this.moduleItems[item.id] = item.serialize();
+        return this.moduleItems[item.id];
+    }
+
+    addError(e, saveInfo) {
+        let item = this.getModuleItem(saveInfo);
+        item.addError(e)
+        this.setModuleItem(item);
+    }
+
+    removeError(errorId, saveInfo) {
+        let item = this.getModuleItem(saveInfo);
+        item.removeError(errorId)
+        this.setModuleItem(item);
+    }
+
+    getModuleItem(saveInfo) {
+        let _item;
+
+        //check if module Item already created
+        if (this.moduleItemExists(saveInfo.moduleItemId)) {
+            _item = this.moduleItems[saveInfo.moduleItemId];
+        }
+
+        if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
+
+        //recursion | return new module if one not found
+        this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
+        return this.getModuleItem(saveInfo);
+    }
+
+    moduleItemExists(moduleItemId) {
+        let condition = false;
+        Object.keys(this.moduleItems).forEach(function (key) {
+            if (moduleItemId === key) {
+                condition = true;
+                return condition;
+            }
+        });
+
+        return condition;
+    }
+
+    checked() {
+        if (this.count < 1) { return false; }
+
+        let modules = this.moduleItems;
+        Object.keys(this.moduleItems).forEach(function (key) {
+            let item = ModuleItem.deserialize(modules[key]);
+            if (item.checked === false) {
+                return false;
+            }
+        })
+
+        return true;
+    }
+
+    setModuleItem(moduleItem) {
+        this.moduleItems[moduleItem.id] = moduleItem.serialize();
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
+    }
+}
+class ModuleItem {
+
+    constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
+        this.errors = errors;
+        this.count = count;
+        this.id = id;
+        this.url = url;
+        if (title === null) {
+            this.title = "Placeholder Title";
+        }
+        else {
+            this.title = title;
+        }
+        this.type = type;
+        this.checked = checked;
+        this.id2 = id2;
+    }
+
+    addError(e) {
+        //grab error or make a new one if needed
+        if (this.errorArrayExists(e)) {
+            this.errors[e.name].push(e.serialize());
+        }
+        else {
+            this.errors[e.name] = [];
+            this.errors[e.name].push(e.serialize());
+        }
+        this.count++;
+    }
+
+    //remove error within object. Return removed error for remove
+    //in other areas
+    removeError(id) {
+        //remove error from list
+        for (let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
+            if (Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
+                this.count--;
+                //remove error from page and return
+                return this.errors[id.split('-')[0]].splice(i, 1);
+            }
+        }
+    }
+
+    findErrorLocation(id) {
+        let _key, index;
+        Object.keys(this.errors).forEach(key => {
+            for (let i = 0; i < this.errors[key].length; i++) {
+                let errorId = JSON.parse(this.errors[key][i]).id;
+                if (errorId === id) {
+                    _key = key;
+                    index = i;
+                }
+            }
+        });
+
+        const response = {
+            index: index,
+            key: _key,
+        }
+
+        return response;
+    }
+
+    addChangeToError(id, change) {
+        //grab location of error
+        const location = this.findErrorLocation(id);
+
+        //deserealize error and add change
+        let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+        error.addChange(change);
+
+        this.errors[location.key][location.index] = error.serialize();
+    }
+
+    removeChangeFromError(id, change) {
+        //grab location of error
+        const location = this.findErrorLocation(id);
+
+        //deserealize error and add change
+        let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+        error.removeChange(change);
+
+        this.errors[location.key][location.index] = error.serialize();
+    }
+
+    errorArrayExists(e) {
+        let condition = false;
+        Object.keys(this.errors).forEach(function (key) {
+            if (e.name === key) {
+                condition = true;
+                return condition;
+            }
+        });
+
+        return condition;
+    }
+
+    errorCountAll() {
+        return this.count;
+    }
+
+    errorCountSingle(name) {
+        const tempJSON = JSON.parse(this.errors);
+
+        //if specific errors exist
+        if (name in tempJSON) {
+            return tempJSON[name].length;
+        } else {//if error type not on page
+            return 0;
+        }
+    }
+
+    errorsList() {
+        return this.errors;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
+    }
+}
+class Page_Error {
+    constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1, match = "", changes = {}, required = false) {
+        this.name = name;
+        this.required = required;
+        this.startIndex = startIndex;
+        this.endIndex = endIndex;
+        this.id = id
+        this.path = path;
+        this.changes = changes;
+        this.match = match;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    addChange(change) {
+        this.changes[change.key] = change.value;
+        console.log(this);
+    }
+
+    removeChange(change) {
+        delete this.changes[change.key];
+        console.log(this);
+    }
+
+    static generateRandomId(name) {
+        return (
+            name +
+            '-' +
+            Math.floor(Math.random() * 9999).toString() +
+            '-' +
+            Math.floor(Math.random() * 9999).toString() +
+            '-' +
+            Date.now().toString()
+        )
+    }
+
+    static deserialize(serialized) {
+        let obj;
+
+        //try and parse
+        try {
+            obj = JSON.parse(serialized);
+        }
+        catch {//if fail, serialize, then try and parse again
+            obj = JSON.parse(JSON.stringify(serialized));
+        }
+
+        return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
+    }
+}
+
+/*
+    Helper Functions and Input Management
+    Imported from inputManager.js
+*/
+
+//Save a list of actions for various UI elements
+//each HTML interactive element functions off of these user actions
+var SelectActions = {
+    Close: 0,//escape
+    CloseSelect: 1,
+    First: 2,
+    Last: 3,
+    Next: 4,
+    Open: 5,
+    PageDown: 6,
+    PageUp: 7,
+    Previous: 8,
+    Select: 9,
+    Type: 10,
+};
+
+// error types for dropdown
+const errorList = "Abbreviation$All Caps$Repeating Characters$Audio only$Blank line$Color Contrast$Color as Meaning$Doc$Heading(accidental)$Heading(empty)$Heading(first level)$Heading(list)$Heading(long)$Heading(skipped)$Image Alt-Text(insufficient)$Image Alt-Text(long)$Image Alt-Text(redundant)$Image(decorative)$Invisible$Language$Link(URL)$Link(broken)$Link(invisible)$Link(long)$Link(non-descriptive)$Link(redundant)$List Item(empty)$List(multi)$List$List(handmade)$PDF Present$Powerpoint$Table(headers)$Table(title)$Text Size$Underline$Video(closed captioning)$Word Doc";
+
+/*
+    Helper Functions
+*/
+
+var event = 5;//naturally set event to open
+
+// map a key press to an action
+//when 'event', 'evt', or 'e' are used in a functinon 
+//it is automatically passed to event handlers to provide extra features and information
+function getActionFromKey(event, menuOpen) {
+    const {key, altKey, ctrlKey, metaKey} = event;//store key information
+    const openKeys = ['Enter', 'ArrowDown', 'ArrowUp', ' '];//all the keys that will cause combo box to expand
+
+    //handle opening when closed
+    if(openKeys.includes(key) && !menuOpen) {
+        return SelectActions.Open;
+    }
+
+    //home and end move he selected option when open or closed
+    if(key === "Home") {
+        return SelectActions.First;
+    }
+    if(key === "End") {
+        return SelectActions.Last;
+    }
+
+    //handle typing characters when open or closed
+    if(//if any key, number, or symbal is pressed
+        key === 'Backspace' ||
+        key === 'Clear' ||
+        (key.length === 1 && key != ' ' && !altKey && !ctrlKey && !metaKey)
+    ) {
+        return SelectActions.Type;
+    }
+
+    //handle keys when open
+    if(menuOpen) {
+        if(key === 'ArrowUp' && altKey) {
+            return SelectActions.CloseSelect;
+        } else if (key === 'ArrowDown' && !altKey) {
+            return SelectActions.Next;
+        } else if (key === 'ArrowUp') {
+            return SelectActions.Previous;
+        } else if (key === 'PageUp') {
+            return SelectActions.PageUp;
+        }else if (key === 'PageDown') {
+            return SelectActions.PageDown;
+        }else if (key === 'Escape') {
+            return SelectActions.Close;
+        }else if (key === 'Enter' || key === ' ') {
+            return SelectActions.Select;
+        }
+    }
+};
+
+// return the index of an option from an array of options, based on a search string
+// if the filter is multiple iterations of the same letter (e.g "aaa"), then cycle through first-letter matches
+function getIndexByLetter(options, filter, startIndex = 0) {
+    const orderedOptions = {
+        ...options.slice(startIndex),//iterate through options and slice to the start index
+        ...options.slice(0, startIndex),//iterate through options and slice to the start index
+    };
+
+    //grab the firstMatch, if present, when filtering key press against combobox array options
+    const firstMatch = filterOptions(orderedOptions, filter)[0];
+
+    //a function named allSameLetter that takes an array as a parameter
+    //every method below tests whether the elemts in the array pass the test provided
+    const allSameLetter = (array) => array.every((letter) => letter === array[0]);
+
+    //first check if there is an exact match for the typed string
+    if (firstMatch) {//if match exists
+        return options.indexOf(firstMatch);
+    }
+
+    //if the same letter is being repeated, cycle through first letter matches
+    else if (allSameLetter(filter.split(''))) {
+        const matches = filterOptions(orderedOptions, filter[0]);
+        return options.indexOf(matches[0]);
+    }
+
+    //if no matches, return -1
+    else {
+        return -1;
+    }
+};
+
+//get an updated option index after performing an action
+function getUpdatedIndex(currentIndex, maxIndex, action) {
+    const pageSize = 4; //used for pageup/pagedown
+
+    switch(action) {
+        case SelectActions.First:
+            return 0;
+        case SelectActions.Last:
+            return maxIndex
+        case SelectActions.Previous:
+            return Math.max(0, currentIndex - 1);
+        case SelectActions.Next:
+            return Math.min(maxIndex, currentIndex + 1);
+        case SelectActions.PageUp:
+            return Math.max(0, currentIndex - pageSize);
+        case SelectActions.PageDown:
+            return Math.min(maxIndex, currentIndex + pageSize);
+        default:
+            return currentIndex;
+    }
+};
+
+//check if element is visible in browser view port
+function isElementInView(element) {
+    var bounding  = element.getBoundingClientRect();
+
+    return (
+        bounding.top >= 0 &&
+        bounding.left >= 0 &&
+        bounding.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+        bounding.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+    );
+};
+
+//check if an element currently scrollable
+function isScrollable(element) {
+    return element && element.clientHeight < element.scrollHeight;
+}
+
+//ensure a given child element is within the parent's visible scroll area
+//if the child is not visible, scroll the parent
+function maintainScrollVisibility(activeElement, scrollParent) {
+    const {offsetHeight, offsetTop} = activeElement;
+    const {offsetHeight: parentOffsetHeight, scrollTop} = scrollParent;
+
+    const isAbove = offsetTop < scrollTop;
+    const isBelow = offsetTop + offsetHeight >  scrollTop + parentOffsetHeight;
+
+    if(isAbove) {
+        scrollParent.scrollTo(0,offsetTop);
+    } else if (isBelow) {
+        scrollParent.scrollTo(0, offsetTop - parentOffsetHeight + offsetHeight);
+    }//if else, then the element is already in view
+};
+
+//get index of item from an array
+function indexOf(array, key) {
+    for(let i = 0; i < array.length; i++) {
+        if(array[i] === key) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+/*
+    Select Component Class
+    Accecpts a combobox element and an array of string options
+*/Select
+function Select (el) {//define as class
+    //element refs
+    this.el = el;
+    this.comboEl = el.querySelector('[role=combobox]');
+    this.listboxEl = el.querySelector('[role=listbox');
+
+    //data
+    this.idBase = this.comboEl.id || 'combo'; //short curcuit evaluation for 'combo' default
+    this.options = new Array();
+
+    //state
+    this.activeIndex = 0;
+    this.open = false;
+    this.searchString = '';
+    this.searchTimeout = null;
+    this.count = 0;
+
+    //init
+    if(el && this.comboEl && this.listboxEl) {
+        this.init();//initialization function
+    }
+};
+
+Select.prototype.init = function() {
+    //add event listeners
+    this.comboEl.addEventListener('blur', this.onComboBlur.bind(this));
+    this.listboxEl.addEventListener('focusout', this.onComboBlur.bind(this));
+    this.comboEl.addEventListener('click', this.onComboClick.bind(this));
+    this.comboEl.addEventListener('keydown', this.onComboKeyDown.bind(this))
+
+    //setup options / parse errors from list
+    const errors = errorList.split("$").sort();
+    this.comboEl.setAttribute('placeholder', errors[0]);
+    errors.forEach((error) => {
+        this.setupOption(error);
+    });
+};
+
+//create and return Option Html element
+Select.prototype.setupOption = function (error) {
+    let index = this.count;
+    this.count++;
+
+    //create element
+    let el = document.createElement("div");
+    el.role = "option";
+    el.id = this.idBase + "-" + this.count;
+    el.classList.add("combo-option");
+    el.innerHTML = error;
+
+    //set attribute to false unless first instance
+    (this.count === 1) ? el.setAttribute("aria-selected","true") : el.setAttribute("aria-selected","false");
+    
+
+    el.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.onOptionClick(index--);
+    });
+    el.addEventListener('mousedown', this.onOptionMouseDown.bind(this));
+
+    this.listboxEl.appendChild(el);
+    this.options.push(el);
+};
+
+Select.prototype.getSearchString = function (char) {
+    // reset typing timeout and start new timeout
+    // this allows us to make multiple-letter matches, like a native select
+    if(typeof this.searchTimeout === 'number') {//couldn't we just perform type conversion through '=='?
+        window.clearTimeout(this.searchTimeout);
+    }
+
+    this.searchTimeout = window.setTimeout(() => {
+        this.searchString = '';
+    }, 500);
+
+    //add most recent letter to saved search string
+    this.searchString += char;
+    return this.searchString;
+};
+
+Select.prototype.onComboBlur = function (event) {
+    // do nothing if relatedTarget is contained within listboxEl
+    if (this.listboxEl.contains(event.relatedTarget)) {
+        return;
+    }
+
+    //select current option and close
+    if (this.open) {
+        this.selectOption(this.activeIndex);
+        this.updateMenuState(false, false);
+    }
+};
+
+Select.prototype.onComboClick = function (event) {
+    this.updateMenuState(!this.open, false);
+};
+
+Select.prototype.onComboKeyDown = function (event) {
+    const {key} = event;
+    const max = this.errorList.length - 1;
+
+    const action = getActionFromKey(event, this.open);
+
+    switch(action) {
+        case SelectActions.Last:
+        case SelectActions.First:
+            this.updateMenuState(true);
+        //intentional fallthrough
+        case SelectActions.Next:
+        case SelectActions.Previous:
+        case SelectActions.PageUp:
+        case SelectActions.PageDown:
+            event.preventDefault();
+            return this.onOptionChange(
+                getUpdatedIndex(this.activeIndex, max, action)
+            );
+        case SelectActions.CloseSelect:
+            event.preventDefault();
+            this.selectOption(this.activeIndex);
+        //intential fallthrough
+        case SelectActions.Close:
+            event.preventDefault();
+            return this.updateMenuState(false);
+        case SelectActions.Type:
+            return this.onComboKeyDown(key);
+        case SelectActions.Open:
+            event.preventDefault();
+            return this.updateMenuState(true);
+        case SelectActions.Select:
+            this.selectOption(this.activeIndex);
+    }
+};
+
+Select.prototype.onComboType = function (letter) {
+    //open the listbox if it is closed
+    this.updateMenuState(true);
+
+    //find the index of the first matching option
+    const searchString = this.getSearchString(letter);
+    const searchIndex = getIndexByLetter(
+        this.options,
+        searchString,
+        this.activeIndex + 1
+    );
+
+    //if a match was found, go for it
+    if(searchIndex >= 0) {
+        this.onOptionChange(searchIndex);
+    }
+    //if no matches, clear the timeout and search string
+    else {
+        window.clearTimeout(this.searchTimeout);
+        this.searchString = '';
+    }
+};
+
+Select.prototype.onOptionChange = function (index) {
+    //update state
+    this.activeIndex = index;
+
+    //update aria-activedescendent
+    this.comboEl.setAttribute('aria-activedescendent', `${this.idBase}-${index}`);
+
+    //update active option styles
+    const options = this.el.querySelectorAll('[role=option]');
+    [...options].forEach((optionEl) => {//this method works for option lists with < 50 options
+        optionEl.classList.remove('option-current');
+    });
+    options[index].classList.add('option-current');
+
+    //ensure the new option is in view
+    if(isScrollable(this.listboxEl)) {
+        maintainScrollVisibility(options[index], this.listboxEl);
+    }
+
+    //ensure the new options is visible on screen
+    //ensure the new option is in view
+    if(!isElementInView(options[index])) {
+        options[index].scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }
+};
+
+Select.prototype.onOptionClick = function (index) {
+    this.onOptionChange(index);
+    this.selectOption(index);
+    this.updateMenuState(false);
+}
+
+Select.prototype.onOptionMouseDown = function () {
+    //clicking an optoin will causee a blur event.
+    //but we don't want to perform hte default keyboard blur action
+    this.ignoreBlur = true;
+}
+
+Select.prototype.selectOption = function (index) {
+    //update state
+    this.activeIndex = index;
+
+    //update displayed value
+    const selected = this.options[index];
+    this.comboEl.setAttribute("placeholder", selected.innerHTML );
+
+    //update aria-selected
+    const options = this.el.querySelectorAll('[role=option]');
+    [...options].forEach((optionEl) => {
+        optionEl.setAttribute('aria-selected', 'false');
+    });
+    options[index].setAttribute('aria-selected', 'true');
+    this.comboEl.setAttribute('value',selected.innerHTML);
+};
+
+Select.prototype.updateMenuState = function (open, callFocus = true) {
+    if (this.open === open) {
+        return;
+    }
+
+    //update state
+    this.open = open;
+
+    //update aria-expanded and styles
+    this.comboEl.setAttribute('aria-expanded', `${open}`);
+    open ? this.el.classList.add('open') : this.el.classList.remove('open');
+
+    //update activedescendent
+    const activeID = open ? `${this.idBase}-${this.activeIndex}` : '';
+    this.comboEl.setAttribute('aria-activedescendent', activeID);
+
+    if (activeID === '' && !isElementInView(this.comboEl)) {
+        this.comboEl.scrollIntoView({behavior: 'smooth', block: 'nearest' });
+    }
+
+    //move focus back to the combobox, if needed
+    callFocus && this.comboEl.focus();
+}
+
+function createCombo(id) {
+    const combo = document.getElementById(id);
+
+    new Select(combo);
+}
+
 (() => {
+
     let _errors = new Array();
     let contentEl;
     const textLookUp = "#:~:text=";
     let activeElement = null;
-
-    class Course {
-
-        constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
-            this.modules = modules;
-            this.moduleCount = moduleCount;
-            this.id = courseId;
-            this.errorCount = errorCount;
-            this.version = version;
-            this.title = title
-            this.professorName = professorName
-        }
-
-        addModule(module) {//add new module
-            this.moduleCount++;
-            this.modules[module.id] = module.serialize();
-            return this.modules[module.id];
-        }
-
-        hasModule(moduleId) {
-            this.modules.forEach((mod) => {
-                let m = Module.deserialize(mod);
-                if (m.id === moduleId) {
-                    return m;
-                }
-            })
-
-            return -1;
-        }
-
-        gatherErrorCount() {
-            let count = 0
-            Object.keys(this.modules).forEach((key) => {
-                let m = Module.deserialize(this.modules[key]);
-
-                Object.keys(m.moduleItems).forEach((key) => {
-                    let i = ModuleItem.deserialize(m.moduleItems[key]);
-
-                    count += i.count;
-                })
-            })
-
-            return count;
-        }
-
-        setProfName(name) { this.professorName = name; }
-
-        modulesCheckedCount() {
-            let count = 0;
-            Object.keys(this.modules).forEach((key) => {
-                let m = Module.deserialize(this.modules[key]);
-
-                if (m.checked()) {
-                    count++;
-                }
-            })
-
-            return count;
-        }
-
-        setModule(module) {
-            this.modules[module.id] = module.serialize();
-        }
-
-        addError(e, pageId) {
-            //returns desired module (or a new copy if it doesn't exist) as Module Item
-            Object.keys(this.modules).forEach((key) => {
-                let module = Module.deserialize(this.modules[key]);
-
-                Object.keys(module.moduleItems).forEach((_key) => {
-                    let item = ModuleItem.deserialize(module.moduleItems[_key]);
-
-                    if (item.id = pageId) {
-                        item.addError(e);
-                        module.moduleItems[_key] = item.serialize();
-                        this.modules[key] = module.serialize();
-                    }
-                })
-            });
-            this.totalErrors += 1;
-        }
-
-        removeError(errorId, saveInfo) {
-            //returns desired module (or a new copy if it doesn't exist) as Module Item
-            _module.removeError(errorId, saveInfo);
-            this.setModule(_module);
-            this.totalErrors--;
-        }
-
-        fetchModuleItem(url) {
-            let moduleItem;
-            Object.keys(this.modules).forEach((key) => {
-                if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
-                let m = Module.deserialize(this.modules[key]);
-
-                Object.keys(m.moduleItems).forEach((_key) => {
-                    if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
-                    let i = ModuleItem.deserialize(m.moduleItems[_key]);
-
-                    //check by module item id
-                    if (url.includes(i.id)) {
-                        moduleItem = i;
-                    }
-
-                    //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                    if (url.includes(i.id2)) {
-                        moduleItem = i;
-                    }
-                })
-            })
-
-            return moduleItem.serialize();
-        }
-
-        fetchModule(url) {
-            let module;
-            Object.keys(this.modules).forEach((key) => {
-                if (module != null && module != undefined) { return module; }
-                let m = Module.deserialize(this.modules[key]);
-
-                Object.keys(m.moduleItems).forEach((_key) => {
-                    if (module != null && module != undefined) { return module; }
-                    let i = ModuleItem.deserialize(m.moduleItems[_key]);
-
-                    //check by module item id
-                    if (url.includes(i.id)) {
-                        module = m;
-                    }
-
-                    //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                    if (url.includes(i.id2)) {
-                        module = m;
-                    }
-                })
-            })
-
-            return module.serialize();
-        }
-
-        serialize() {//serialize course for JSON
-            return JSON.stringify(this);
-        }
-
-        static deserialize(serialized) {
-            const obj = JSON.parse(serialized);
-            return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
-        }
-    }
-    class Module {
-
-        constructor(number, title, published = true, moduleItems = {}, count = 0) {
-            this.moduleItems = moduleItems;
-            this.count = count;
-            this.id = number;
-            this.errorCount;
-            this.title = title;
-            this.published = published;
-        }
-
-        addItem(item) {
-            this.count++;
-            this.moduleItems[item.id] = item.serialize();
-            return this.moduleItems[item.id];
-        }
-
-        addError(e, saveInfo) {
-            let item = this.getModuleItem(saveInfo);
-            item.addError(e)
-            this.setModuleItem(item);
-        }
-
-        removeError(errorId, saveInfo) {
-            let item = this.getModuleItem(saveInfo);
-            item.removeError(errorId)
-            this.setModuleItem(item);
-        }
-
-        getModuleItem(saveInfo) {
-            let _item;
-
-            //check if module Item already created
-            if (this.moduleItemExists(saveInfo.moduleItemId)) {
-                _item = this.moduleItems[saveInfo.moduleItemId];
-            }
-
-            if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
-
-            //recursion | return new module if one not found
-            this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
-            return this.getModuleItem(saveInfo);
-        }
-
-        moduleItemExists(moduleItemId) {
-            let condition = false;
-            Object.keys(this.moduleItems).forEach(function (key) {
-                if (moduleItemId === key) {
-                    condition = true;
-                    return condition;
-                }
-            });
-
-            return condition;
-        }
-
-        checked() {
-            if (this.count < 1) { return false; }
-
-            let modules = this.moduleItems;
-            Object.keys(this.moduleItems).forEach(function (key) {
-                let item = ModuleItem.deserialize(modules[key]);
-                if (item.checked === false) {
-                    return false;
-                }
-            })
-
-            return true;
-        }
-
-        setModuleItem(moduleItem) {
-            this.moduleItems[moduleItem.id] = moduleItem.serialize();
-        }
-
-        serialize() {
-            return JSON.stringify(this);
-        }
-
-        static deserialize(serialized) {
-            const obj = JSON.parse(serialized);
-            return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
-        }
-    }
-    class ModuleItem {
-
-        constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
-            this.errors = errors;
-            this.count = count;
-            this.id = id;
-            this.url = url;
-            if (title === null) {
-                this.title = "Placeholder Title";
-            }
-            else {
-                this.title = title;
-            }
-            this.type = type;
-            this.checked = checked;
-            this.id2 = id2;
-        }
-
-        addError(e) {
-            //grab error or make a new one if needed
-            if (this.errorArrayExists(e)) {
-                this.errors[e.name].push(e.serialize());
-            }
-            else {
-                this.errors[e.name] = [];
-                this.errors[e.name].push(e.serialize());
-            }
-            this.count++;
-        }
-
-        //remove error within object. Return removed error for remove
-        //in other areas
-        removeError(id) {
-            //remove error from list
-            for(let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
-                if(Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
-                    this.count--;
-                    //remove error from page and return
-                    return this.errors[id.split('-')[0]].splice(i,1);
-                }
-            }
-        }
-
-        findErrorLocation(id) {
-            let _key, index;
-            Object.keys(this.errors).forEach(key => {
-                for(let i = 0; i < this.errors[key].length; i++) {
-                    let errorId = JSON.parse(this.errors[key][i]).id;
-                    if(errorId === id) {
-                        _key = key;
-                        index = i;
-                    }
-                }
-            });
-
-            const response = {
-                index: index,
-                key: _key,
-            }
-
-            return response;
-        }
-
-        addChangeToError(id, change) {
-            //grab location of error
-            const location = this.findErrorLocation(id);
-            
-            //deserealize error and add change
-            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
-            error.addChange(change);
-
-            this.errors[location.key][location.index] = error.serialize();
-        }
-
-        removeChangeFromError(id, change) {
-            //grab location of error
-            const location = this.findErrorLocation(id);
-            
-            //deserealize error and add change
-            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
-            error.removeChange(change);
-
-            this.errors[location.key][location.index] = error.serialize();
-        }
-
-        errorArrayExists(e) {
-            let condition = false;
-            Object.keys(this.errors).forEach(function (key) {
-                if (e.name === key) {
-                    condition = true;
-                    return condition;
-                }
-            });
-
-            return condition;
-        }
-
-        errorCountAll() {
-            return this.count;
-        }
-
-        errorCountSingle(name) {
-            const tempJSON = JSON.parse(this.errors);
-
-            //if specific errors exist
-            if (name in tempJSON) {
-                return tempJSON[name].length;
-            } else {//if error type not on page
-                return 0;
-            }
-        }
-
-        errorsList() {
-            return this.errors;
-        }
-
-        serialize() {
-            return JSON.stringify(this);
-        }
-
-        static deserialize(serialized) {
-            const obj = JSON.parse(serialized);
-            return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
-        }
-    }
-    class Page_Error {
-        constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1,match = "", changes = {}, required = false) {
-            this.name = name;
-            this.required = required;
-            this.startIndex = startIndex;
-            this.endIndex = endIndex;
-            this.id = id
-            this.path = path;
-            this.changes = changes;
-            this.match = match;
-        }
-
-        serialize() {
-            return JSON.stringify(this);
-        }
-
-        addChange(change) {
-            this.changes[change.key] = change.value;
-            console.log(this);
-        }
-
-        removeChange(change) {
-            delete this.changes[change.key];
-            console.log(this);
-        }
-
-        static generateRandomId(name) {
-            return (
-                name +
-                '-' +
-                Math.floor(Math.random() * 9999).toString() +
-                '-' +
-                Math.floor(Math.random() * 9999).toString() +
-                '-' +
-                Date.now().toString()
-            )
-        }
-
-        static deserialize(serialized) {
-            let obj;
-
-            //try and parse
-            try {
-                obj = JSON.parse(serialized);
-            }
-            catch {//if fail, serialize, then try and parse again
-                obj = JSON.parse(JSON.stringify(serialized));
-            }
-
-            return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
-        }
-    }
-
     /* HTML Chunks to insert into DOM */
 
     //HTML CHunks reference document; to query for needed chunks
@@ -724,7 +1148,10 @@
     }
 
     const setErrorBtn = () => {
-        let btn = document.getElementById('menu').appendChild(HTML_CHUNK_REF_DOC.querySelector('add-error-button').cloneNode(true));
+        let btn = document.querySelector('body').appendChild(HTML_CHUNK_REF_DOC.querySelector('.add-error-button').cloneNode(true));
+        
+        createCombo('CAT-combo1');
+        
         console.log(btn);
     }
 
@@ -1631,10 +2058,12 @@
         styleEl.innerText = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/page-loaded.css');
         document.head.appendChild(styleEl);
 
+        console.log(HTML_CHUNK_REF_DOC);
+
         //if not on edit page
         if (!window.location.href.includes('edit')) {
             //add error btn to DOM
-            addErrorBtn();
+            setErrorBtn();
 
             //add mouse up functio to contentEl
             contentEl.addEventListener('mouseup', addErrorContextMenu.bind(window.getSelection()));

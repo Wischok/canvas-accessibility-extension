@@ -147,8 +147,20 @@ h6::after {
     padding-inline: 5px;
 }
 
+.ic-app-header__menu-list-item:has(.add-error-button) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .add-error-button {
-    position: relative;
+    display: flex;
+    position: fixed;
+    bottom: 3rem;
+    left: 20rem;
+    gap: 10px;
+    flex-direction: row;
+    align-items: center;
 }
 
 .add-error-button button {
@@ -156,7 +168,11 @@ h6::after {
     width: 2rem;
     border-radius: 50%;
     background-color: green;
-    filter: invert(1);
+    border: none;
+}
+
+.add-error-button button .retract {
+    display: none;
 }
 
 .add-error-button button img {
@@ -181,7 +197,7 @@ h6::after {
 .add-error-button .input-wrapper .combo-input {
     font-family: "Quicksand", sans-serif;
     font-weight: 600;
-    height: 2rem;
+    height: 1.7rem;
     padding-left: 1rem;
     border-radius: 7px;
     display: flex;
