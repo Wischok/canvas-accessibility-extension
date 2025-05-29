@@ -132,7 +132,7 @@ p:has(img.highlight) {
 }
 
 .error-found-input.element.strikethrough::after {
-    background-image: url('https://github.com/Wischok/canvas-accessibility-extension/blob/main/assets/images/trash-white.png?raw=true');
+    background-image: url('https://github.com/Wischok/canvas-accessibility-extension/blob/main/assets/images/x-white.png?raw=true');
     background-position: center;
     background-size: contain;
     content: "";
