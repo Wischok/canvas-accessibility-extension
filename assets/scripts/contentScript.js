@@ -1327,7 +1327,50 @@
     }
 
     const createEditableErrorElement = async (range, error) => {
-        
+        //copy html chunk to replicate for each error
+        let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input.element').cloneNode(true);
+        node.id = error.id;
+
+        //find node
+        let element;
+        //if 'edit' on 'pages' page, change path
+        if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+            element = searchNode(contentEl, updateSearchPath(error.path, -1));
+        } else {
+            element = searchNode(contentEl, error.path);
+        }
+
+        //display editor console: add event listener to error node on focus and lose focus
+        node.addEventListener('focusin', ToggleDisplay.bind());
+        node.addEventListener('focusout', ToggleDisplay.bind());
+
+        //display editor console: add event listener to error node editor console on focus and lose focus
+        node.querySelector('.editor-console').addEventListener('focusin', ToggleDisplay.bind());
+        node.querySelector('.editor-console').addEventListener('focusout', ToggleDisplay.bind());
+
+        //add editor console event listeners | pass in referenced input element id for updating
+        //bold
+        node.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(this, node.id))
+
+        //italic
+        node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, node.id))
+
+        //highlight
+        node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, node.id))
+
+        //delete element / selection
+        node.querySelector('#ec-remove').addEventListener('click', removeSelection.bind(this, node.id))
+
+        //delete error
+        node.querySelector('#ec-delete').addEventListener('click', deleteError.bind(this, node.id))
+
+        //create span to wrap inner text with
+        let span = document.createElement('span');
+        span.id = 'REPLACE-ELEMENT';
+        range.surroundContents(span);
+
+        //replace previous span with error node
+        contentEl.querySelector('#REPLACE-ELEMENT').replaceWith(node);
     }
 
     //toggle display class on element interacted with

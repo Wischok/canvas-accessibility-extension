@@ -30,7 +30,8 @@
 .error-found-input:has(input.display) .editor-console,
 .editor-console:has(button:focus),
 .editor-console.display,
-.editor-console:hover {
+.editor-console:hover,
+.error-found-input.element:hover .editor-console {
     display: block !important;
 }
 
@@ -98,4 +99,14 @@
 
 p:has(img.highlight) {
     background-color: rgb(255, 255, 114) !important;
+}
+
+.error-found-input.element {
+    border: dashed 2px black;
+    background-color: transparent;
+    transition: all 200ms ease-in-out;
+}
+
+.error-found-input.element:hover {
+    background-color: rgb(173, 191, 213);
 }
