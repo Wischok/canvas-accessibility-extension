@@ -123,12 +123,16 @@ h6::after {
 } 
 
 .user_content p:first-child:is(img),
-#content p:first-child:is(img) {
+#content p:first-child:is(img),
+.user_content span:first-child:is(img),
+#content span:first-child:is(img) {
     position: relative;
 }
 
 .user_content p:first-child:is(img)::after,
-#content p:first-child:is(img)::after {
+#content p:first-child:is(img)::after,
+.user_content span:first-child:is(img)::after,
+#content span:first-child:is(img)::after {
     width: 100%;
     height: 2lh;
     max-height: 20%;
