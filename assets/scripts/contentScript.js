@@ -1586,7 +1586,7 @@
 
         //display image alt text
         contentEl.querySelectorAll("img").forEach((el) => { 
-            el.classList.add('.img-display-alt');
+            el.parentElement.classList.add('.img-display-alt');
         });
 
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});

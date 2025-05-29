@@ -1,4 +1,4 @@
-.error-found-input {
+.error-found-input:not(.element) {
     box-shadow: 0px 0px 16px 4px rgba(145, 44, 28, 0.75);
     -webkit-box-shadow: 0px 0px 16px 4px rgba(145, 44, 28, 0.75);
     -moz-box-shadow: 0px 0px 16px 4px rgba(145, 44, 28, 0.75);
@@ -105,6 +105,8 @@ p:has(img.highlight) {
     border: dashed 2px black;
     background-color: transparent;
     transition: all 200ms ease-in-out;
+    font-size: 14px;
+    position: relative;
 }
 
 .error-found-input.element:hover {
