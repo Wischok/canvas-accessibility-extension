@@ -125,13 +125,17 @@ p:has(img.highlight) {
 .error-found-input.element.strikethrough {
     text-decoration: none;
     border: none;
+}
+
+.error-found-input.element.strikethrough > *:not(.editor-console) {
     opacity: .5;
 }
 
 .error-found-input.element.strikethrough::after {
-    content: " ";
+    content: url('https://github.com/Wischok/canvas-accessibility-extension/blob/main/assets/images/trash.png?raw=true');
     width: 2rem;
     height: 100%;
+    max-height: 2rem;
     background-color: rgba(145, 44, 28, 0.75);
     position: absolute;
     bottom: 0;
@@ -140,7 +144,7 @@ p:has(img.highlight) {
 
 .error-found-input.element.strikethrough::before {
     content: " ";
-    width: 2rem;
+    width: 10px;
     height: 100%;
     background-color: rgba(145, 44, 28, 0.75);
     position: absolute;
