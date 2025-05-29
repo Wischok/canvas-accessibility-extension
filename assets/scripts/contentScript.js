@@ -1304,11 +1304,6 @@
                 node.querySelector('input').value = error.changes[key];
             }
         })
-
-        //if editor console is on right side of page
-        if(node.getBoundingClientRect().right < (window.innerWidth / 2)) {
-            node.querySelector('.editor-console').classList.add('right');
-        }
     }
 
     /**
@@ -1318,7 +1313,8 @@
      */
     const createEditableErrorElement = async (range, error) => {
         //copy html chunk to replicate for each error
-        let node = HTML_CHUNK_REF_DOC.querySelector('.error-found-input.element').cloneNode(true);
+        let node = HTML_CHUNK_REF_DOC.querySelector('.element').cloneNode(true);
+        let editorConsole = node.querySelector('.editor-console');
         node.id = error.id;
 
         //find node
@@ -1335,27 +1331,29 @@
         node.addEventListener('focusout', ToggleDisplay.bind());
 
         //display editor console: add event listener to error node editor console on focus and lose focus
-        node.querySelector('.editor-console').addEventListener('focusin', ToggleDisplay.bind());
-        node.querySelector('.editor-console').addEventListener('focusout', ToggleDisplay.bind());
+        editorConsole.addEventListener('focusin', ToggleDisplay.bind());
+        editorConsole.addEventListener('focusout', ToggleDisplay.bind());
 
         //add editor console event listeners | pass in referenced input element id for updating
         //bold
-        node.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(this, node.id))
+        editorConsole.querySelector('#ec-bold').addEventListener('click', toggleBold.bind(this, node.id))
 
         //italic
-        node.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, node.id))
+        editorConsole.querySelector('#ec-italic').addEventListener('click', toggleItalic.bind(this, node.id))
 
         //highlight
-        node.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, node.id))
+        editorConsole.querySelector('#ec-highlight-text').addEventListener('click', toggleHighlight.bind(this, node.id))
 
         //delete element / selection
-        node.querySelector('#ec-remove').addEventListener('click', removeSelection.bind(this, node.id))
+        editorConsole.querySelector('#ec-remove').addEventListener('click', removeSelection.bind(this, node.id))
 
         //delete error
-        node.querySelector('#ec-delete').addEventListener('click', deleteError.bind(this, node.id))
+        editorConsole.querySelector('#ec-delete').addEventListener('click', deleteError.bind(this, node.id))
 
         //create span to wrap inner text with
         range.surroundContents(node);
+
+        node.appendChild(editorConsole);
     }
 
     //toggle display class on element interacted with
@@ -1592,7 +1590,7 @@
         //display image alt text
         if (!window.location.href.includes('edit')) {
             contentEl.querySelectorAll("img").forEach((el) => {
-                el.parentElement.classList.setAttribute('alt', el.getAttribute('alt'));
+                el.parentElement.setAttribute('alt', el.getAttribute('alt'));
             });
         }
 

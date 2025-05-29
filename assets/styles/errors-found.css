@@ -46,6 +46,12 @@
     left: 0;
 }
 
+.error-found-input.element .editor-console {
+    top: -1.8rem;
+    z-index: 999;
+    bottom: auto;
+}
+
 .error-found-input .editor-console.right {
     left: auto;
     right: 0;
