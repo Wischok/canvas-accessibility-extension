@@ -102,20 +102,42 @@ p:has(img.highlight) {
 }
 
 .error-found-input.element {
+    border: dashed 2px rgba(145, 44, 28, 0.75);
     background-color: transparent;
     transition: all 200ms ease-in-out;
     font-size: 14px;
     position: relative;
     display: inline-block;
     width: 100%;
-    box-shadow: 0px 0px 16px 4px rgba(145, 44, 28, 0.75);
-    -webkit-box-shadow: 0px 0px 16px 4px rgba(145, 44, 28, 0.75);
-    -moz-box-shadow: 0px 0px 16px 4px rgba(145, 44, 28, 0.75);
 }
 
 .error-found-input.element.strikethrough {
     text-decoration: none;
-    border: dashed 2px rgba(145, 44, 28, 0.75);
+    overflow: hidden;
+    border: none;
+    opacity: .5;
+}
+
+.error-found-input.element.strikethrough::after {
+    content: "";
+    width: 100%;
+    height: 10px;
+    background-color: rgba(145, 44, 28, 0.75);
+    position: absolute;
+    transform: rotate(45deg);
+    bottom: 50%;
+    left: 0;
+}
+
+.error-found-input.element.strikethrough::before {
+    content: "";
+    width: 100%;
+    height: 10px;
+    background-color: rgba(145, 44, 28, 0.75);
+    position: absolute;
+    transform: rotate(-45deg);
+    top: 50%;
+    left: 0;
 }
 
 .error-found-input.element:hover {
