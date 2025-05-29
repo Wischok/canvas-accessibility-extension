@@ -122,19 +122,17 @@ h6::after {
     text-align: center;
 } 
 
-.user_content img,
-#content img,
 .user_content p:has(img),
 #content p:has(img) {
     position: relative;
 }
 
-.user_content img::after,
-#content img::after {
-    width: 15rem;
-    height: 3rem;
+.user_content p:has(img)::after,
+#content p:has(img)::after {
+    width: 100%;
+    height: max-content;
     max-height: 20%;
-    content: "alt: " attr(alt);
+    content: attr(alt);
     background-color: black;
     color: white;
     position: absolute;
