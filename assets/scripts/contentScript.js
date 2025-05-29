@@ -1582,15 +1582,11 @@
         let styleEl = document.createElement('style');
         styleEl.type = 'text/css';
         styleEl.innerText = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/page-loaded.css');
-        document.head.appendChild(await fetchCSSChunk());
+        document.head.appendChild(styleEl);
 
         //display image alt text
         contentEl.querySelectorAll("img").forEach((el) => { 
-            el.parentElement.classList.add('image-block-alt-display-setup');
-            let alt = document.createElement('span');
-            alt.innerText = el.getAttribute('alt');
-            alt.classList.add('image-block-alt-display');
-            el.parentElement.appendChild(alt);
+            el.classList.add('.img-display-alt');
         });
 
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});

@@ -110,18 +110,3 @@ p:has(img.highlight) {
 .error-found-input.element:hover {
     background-color: rgb(173, 191, 213);
 }
-
-.img-display-alt {
-    position: relative;
-}
-
-.img-display-alt::after {
-    width: 100%;
-    height: min-content;
-    content: "alt: " attr(alt);
-    background-color: black;
-    color: white;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-}

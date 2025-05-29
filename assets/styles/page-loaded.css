@@ -130,22 +130,17 @@ h6::after {
     text-align: center;
 } 
 
-.image-block-alt-display-setup {
+.img-display-alt img{
     position: relative;
-    display: block;
-} 
+}
 
-.image-block-alt-display {
-    position: absolute;
-    padding-inline:1rem;
-    height: 2rem;
-    font-size: 15px;
+.img-display-alt img::after {
+    width: 100%;
+    height: min-content;
+    content: "alt: " attr(alt);
     background-color: black;
     color: white;
+    position: absolute;
     bottom: 0;
     left: 0;
-    display: flex;
-    justify-content: start;
-    align-items: center;
-    text-align: start;
 }
