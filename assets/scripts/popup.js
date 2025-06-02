@@ -214,6 +214,7 @@ function createAccordionPair_ModuleItem(list, key, index) {
         if (e.match.length > 0) { li.title = button2.setAttribute('title', e.match) };
         button2.classList.add('link');
         //remove error function
+        button2.addEventListener('click', removeError.bind(this, e.id));
 
         let div = document.createElement('div');
         div.classList.add('top-row');
@@ -313,6 +314,7 @@ async function addError(e) {
 }
 
 async function removeError(id) {
+    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
     const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
 
     let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
@@ -345,8 +347,7 @@ document.getElementById("save").addEventListener("click", async () => {
 });
 
 document.getElementById('fix-all').addEventListener('click', async () => {
-    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    const response = await chrome.tabs.sendMessage(tab.id, {type: "AUDIT"});
+    createPanel();
 });
 
 document.getElementById('clear').addEventListener('click', () => {
@@ -491,6 +492,18 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         sendResponse({error: error});
     }
 });
+
+function createPanel() {
+    console.log('creating panel');
+    chrome.devtools.panels.create("My Panel",
+    "MyPanelIcon.png",
+    "Panel.html",
+    function(panel) {
+      // code invoked on panel creation
+    }
+);
+}
+
 
 //setup page and extension on load
 window.addEventListener("load", pageSetup());

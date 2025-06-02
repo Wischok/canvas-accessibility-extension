@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canvas Accessibility Tool</title>
+
+  <!-- stylesheets -->
+  <link rel="stylesheet" href="/assets/styles/reset.css">
+  <link rel="stylesheet" href="/assets/styles/side-panel.css">
+
+  <!-- fonts  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+  <!-- scripts -->
+  <script type="module" src="/assets/scripts/contentScript.js"></script>
+
+</head>
+<body>
+  <main>
+    <!-- Panel Head -->
+    <header class="header-top flex-row panel-padding">
+      <button class="btn2 back" title="Go back." id="back">
+        <img src="/assets/images/caret-up.png" alt="">
+      </button>
+      <!-- Title -->
+      <div class="title flex-row-center" id="title-container">
+        <img class="icon" src="/assets/images/icon-128.png" alt="">
+        <h1 id="title">WisCAT</h1>
+      </div>
+      <button class="btn2 next" title="Next page." id="next-page">
+        <span class="text p2">Next Page</span>
+        <img src="/assets/images/caret-blue-down.png" alt="">
+      </button>
+    </header>
+    <!-- Course Short Details -->
+    <div class="short-details panel-padding" id="course-short-details-container">
+      <div class="flex-row top-content">
+        <img src="/assets/images/pfp.png" alt="">
+        <input type="text" class="input1" value="Professor Name">
+      </div>
+      <div class="flex-row bottom-content">
+        <img src="/assets/images/book.png" alt="">
+        <input type="text" class="input1" value="The Title of the Course">
+      </div>
+      <hr class="hr1">
+    </div>
+    <!-- Add Error Section -->
+    <div class="container add-error-container panel-padding display" id="add-error-container">
+      <h2>Add Error</h2>
+      <p class="p3">Element Selected</p>
+      <div class="html-window">
+        <code class="wrapper" id="element-selected">
+          
+        </code>
+      </div>
+      <div class="combo combo-standard" id="combo1">
+        <input class="combo-input input1 no-animate" name="Error Type" id="error-type" role="combobox" tabindex="0"
+          aria-label="Error Type Selection" type="text" aria-haspopup="listbox" aria-controls="listbox3" value="Error Type"
+          placeholder="Error Instance Here" autocomplete="off" aria-expanded="false">
+        <!-- Combo Menu | List of Options -->
+        <div class="combo-menu" role="listbox" id="listbox3" aria-label="Error Type Selection Dropdown." tabindex="-1">
+        </div>
+      </div>
+      <button class="btn1" id="add">
+        Add Error
+      </button>
+      <hr class="hr1">
+    </div>
+    <!-- Display Errors Section -->
+    <div class="container page-errors-container panel-padding display" id="errors-container">
+      <h2>Page Errors</h2>
+      <ul class="list1" class="errors" id="error-list" title="List of accessibility issues found on page.">
+
+      </ul>
+      <hr class="hr1">
+    </div>
+    <!-- Current Course Section -->
+    <div class="container current-course-container panel-padding flex-column-center" id="course-generation-container">
+      <h2>Current Course</h2>
+      <p class="p3" id="course-found-desc">No Course Records Found</p>
+      <button class="btn1" id="generate">
+        Generate Course
+      </button>
+      <hr class="hr1">
+    </div>
+    <!-- Select Course Section -->
+    <div class="container container4" id="course-list-container">
+      <h2>Other Course</h2>
+      <!-- List of previous canvas courses -->
+      <ul class="list1" title="Previous Canvas Courses" id="courses">
+        <li class="li course">
+          <img src="" alt="">
+          <div class="desc">
+            <p class="p1 name">Course Name</p>
+            <p class="desc p3">
+              <span>Errors found: <span class="errors">00</span></span>
+              <span>Modules checked: <span class="module-count">00</span></span>
+            </p>
+          </div>
+        </li>
+      </ul>
+      <hr class="hr1">
+    </div>
+    <!-- sidePanel Console -->
+    <div class="container console" id="console-container">
+      <h2 class="work-sans">Console</h2>
+      <ul class="list2" title="Extension log / console." id="console">
+        <li class="li log">
+          <p>
+            <span class="timestamp">Timestamp: </span>
+            <span class="message"></span>
+          </p>
+        </li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,411 +1,3 @@
-class Course {
-
-    constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
-        this.modules = modules;
-        this.moduleCount = moduleCount;
-        this.id = courseId;
-        this.errorCount = errorCount;
-        this.version = version;
-        this.title = title
-        this.professorName = professorName
-    }
-
-    addModule(module) {//add new module
-        this.moduleCount++;
-        this.modules[module.id] = module.serialize();
-        return this.modules[module.id];
-    }
-
-    hasModule(moduleId) {
-        this.modules.forEach((mod) => {
-            let m = Module.deserialize(mod);
-            if (m.id === moduleId) {
-                return m;
-            }
-        })
-
-        return -1;
-    }
-
-    gatherErrorCount() {
-        let count = 0
-        Object.keys(this.modules).forEach((key) => {
-            let m = Module.deserialize(this.modules[key]);
-
-            Object.keys(m.moduleItems).forEach((key) => {
-                let i = ModuleItem.deserialize(m.moduleItems[key]);
-
-                count += i.count;
-            })
-        })
-
-        return count;
-    }
-
-    setProfName(name) { this.professorName = name; }
-
-    modulesCheckedCount() {
-        let count = 0;
-        Object.keys(this.modules).forEach((key) => {
-            let m = Module.deserialize(this.modules[key]);
-
-            if (m.checked()) {
-                count++;
-            }
-        })
-
-        return count;
-    }
-
-    setModule(module) {
-        this.modules[module.id] = module.serialize();
-    }
-
-    addError(e, pageId) {
-        //returns desired module (or a new copy if it doesn't exist) as Module Item
-        Object.keys(this.modules).forEach((key) => {
-            let module = Module.deserialize(this.modules[key]);
-
-            Object.keys(module.moduleItems).forEach((_key) => {
-                let item = ModuleItem.deserialize(module.moduleItems[_key]);
-
-                if (item.id = pageId) {
-                    item.addError(e);
-                    module.moduleItems[_key] = item.serialize();
-                    this.modules[key] = module.serialize();
-                }
-            })
-        });
-        this.totalErrors += 1;
-    }
-
-    removeError(errorId, saveInfo) {
-        //returns desired module (or a new copy if it doesn't exist) as Module Item
-        _module.removeError(errorId, saveInfo);
-        this.setModule(_module);
-        this.totalErrors--;
-    }
-
-    fetchModuleItem(url) {
-        let moduleItem;
-        Object.keys(this.modules).forEach((key) => {
-            if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
-            let m = Module.deserialize(this.modules[key]);
-
-            Object.keys(m.moduleItems).forEach((_key) => {
-                if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
-                let i = ModuleItem.deserialize(m.moduleItems[_key]);
-
-                //check by module item id
-                if (url.includes(i.id)) {
-                    moduleItem = i;
-                }
-
-                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                if (url.includes(i.id2)) {
-                    moduleItem = i;
-                }
-            })
-        })
-
-        return moduleItem.serialize();
-    }
-
-    fetchModule(url) {
-        let module;
-        Object.keys(this.modules).forEach((key) => {
-            if (module != null && module != undefined) { return module; }
-            let m = Module.deserialize(this.modules[key]);
-
-            Object.keys(m.moduleItems).forEach((_key) => {
-                if (module != null && module != undefined) { return module; }
-                let i = ModuleItem.deserialize(m.moduleItems[_key]);
-
-                //check by module item id
-                if (url.includes(i.id)) {
-                    module = m;
-                }
-
-                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                if (url.includes(i.id2)) {
-                    module = m;
-                }
-            })
-        })
-
-        return module.serialize();
-    }
-
-    serialize() {//serialize course for JSON
-        return JSON.stringify(this);
-    }
-
-    static deserialize(serialized) {
-        const obj = JSON.parse(serialized);
-        return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
-    }
-}
-class Module {
-
-    constructor(number, title, published = true, moduleItems = {}, count = 0) {
-        this.moduleItems = moduleItems;
-        this.count = count;
-        this.id = number;
-        this.errorCount;
-        this.title = title;
-        this.published = published;
-    }
-
-    addItem(item) {
-        this.count++;
-        this.moduleItems[item.id] = item.serialize();
-        return this.moduleItems[item.id];
-    }
-
-    addError(e, saveInfo) {
-        let item = this.getModuleItem(saveInfo);
-        item.addError(e)
-        this.setModuleItem(item);
-    }
-
-    removeError(errorId, saveInfo) {
-        let item = this.getModuleItem(saveInfo);
-        item.removeError(errorId)
-        this.setModuleItem(item);
-    }
-
-    getModuleItem(saveInfo) {
-        let _item;
-
-        //check if module Item already created
-        if (this.moduleItemExists(saveInfo.moduleItemId)) {
-            _item = this.moduleItems[saveInfo.moduleItemId];
-        }
-
-        if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
-
-        //recursion | return new module if one not found
-        this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
-        return this.getModuleItem(saveInfo);
-    }
-
-    moduleItemExists(moduleItemId) {
-        let condition = false;
-        Object.keys(this.moduleItems).forEach(function (key) {
-            if (moduleItemId === key) {
-                condition = true;
-                return condition;
-            }
-        });
-
-        return condition;
-    }
-
-    checked() {
-        if (this.count < 1) { return false; }
-
-        let modules = this.moduleItems;
-        Object.keys(this.moduleItems).forEach(function (key) {
-            let item = ModuleItem.deserialize(modules[key]);
-            if (item.checked === false) {
-                return false;
-            }
-        })
-
-        return true;
-    }
-
-    setModuleItem(moduleItem) {
-        this.moduleItems[moduleItem.id] = moduleItem.serialize();
-    }
-
-    serialize() {
-        return JSON.stringify(this);
-    }
-
-    static deserialize(serialized) {
-        const obj = JSON.parse(serialized);
-        return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
-    }
-}
-class ModuleItem {
-
-    constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
-        this.errors = errors;
-        this.count = count;
-        this.id = id;
-        this.url = url;
-        if (title === null) {
-            this.title = "Placeholder Title";
-        }
-        else {
-            this.title = title;
-        }
-        this.type = type;
-        this.checked = checked;
-        this.id2 = id2;
-    }
-
-    addError(e) {
-        //grab error or make a new one if needed
-        if (this.errorArrayExists(e)) {
-            this.errors[e.name].push(e.serialize());
-        }
-        else {
-            this.errors[e.name] = [];
-            this.errors[e.name].push(e.serialize());
-        }
-        this.count++;
-    }
-
-    //remove error within object. Return removed error for remove
-    //in other areas
-    removeError(id) {
-        //remove error from list
-        for (let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
-            if (Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
-                this.count--;
-                //remove error from page and return
-                return this.errors[id.split('-')[0]].splice(i, 1);
-            }
-        }
-    }
-
-    findErrorLocation(id) {
-        let _key, index;
-        Object.keys(this.errors).forEach(key => {
-            for (let i = 0; i < this.errors[key].length; i++) {
-                let errorId = JSON.parse(this.errors[key][i]).id;
-                if (errorId === id) {
-                    _key = key;
-                    index = i;
-                }
-            }
-        });
-
-        const response = {
-            index: index,
-            key: _key,
-        }
-
-        return response;
-    }
-
-    addChangeToError(id, change) {
-        //grab location of error
-        const location = this.findErrorLocation(id);
-
-        //deserealize error and add change
-        let error = Page_Error.deserialize(this.errors[location.key][location.index]);
-        error.addChange(change);
-
-        this.errors[location.key][location.index] = error.serialize();
-    }
-
-    removeChangeFromError(id, change) {
-        //grab location of error
-        const location = this.findErrorLocation(id);
-
-        //deserealize error and add change
-        let error = Page_Error.deserialize(this.errors[location.key][location.index]);
-        error.removeChange(change);
-
-        this.errors[location.key][location.index] = error.serialize();
-    }
-
-    errorArrayExists(e) {
-        let condition = false;
-        Object.keys(this.errors).forEach(function (key) {
-            if (e.name === key) {
-                condition = true;
-                return condition;
-            }
-        });
-
-        return condition;
-    }
-
-    errorCountAll() {
-        return this.count;
-    }
-
-    errorCountSingle(name) {
-        const tempJSON = JSON.parse(this.errors);
-
-        //if specific errors exist
-        if (name in tempJSON) {
-            return tempJSON[name].length;
-        } else {//if error type not on page
-            return 0;
-        }
-    }
-
-    errorsList() {
-        return this.errors;
-    }
-
-    serialize() {
-        return JSON.stringify(this);
-    }
-
-    static deserialize(serialized) {
-        const obj = JSON.parse(serialized);
-        return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
-    }
-}
-class Page_Error {
-    constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1, match = "", changes = {}, required = false) {
-        this.name = name;
-        this.required = required;
-        this.startIndex = startIndex;
-        this.endIndex = endIndex;
-        this.id = id
-        this.path = path;
-        this.changes = changes;
-        this.match = match;
-    }
-
-    serialize() {
-        return JSON.stringify(this);
-    }
-
-    addChange(change) {
-        this.changes[change.key] = change.value;
-        console.log(this);
-    }
-
-    removeChange(change) {
-        delete this.changes[change.key];
-        console.log(this);
-    }
-
-    static generateRandomId(name) {
-        return (
-            name +
-            '-' +
-            Math.floor(Math.random() * 9999).toString() +
-            '-' +
-            Math.floor(Math.random() * 9999).toString() +
-            '-' +
-            Date.now().toString()
-        )
-    }
-
-    static deserialize(serialized) {
-        let obj;
-
-        //try and parse
-        try {
-            obj = JSON.parse(serialized);
-        }
-        catch {//if fail, serialize, then try and parse again
-            obj = JSON.parse(JSON.stringify(serialized));
-        }
-
-        return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
-    }
-}
-
 /*
     Helper Functions and Input Management
     Imported from inputManager.js
@@ -831,11 +423,419 @@ function createCombo(id) {
 }
 
 (() => {
+    class Course {
+
+        constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
+            this.modules = modules;
+            this.moduleCount = moduleCount;
+            this.id = courseId;
+            this.errorCount = errorCount;
+            this.version = version;
+            this.title = title
+            this.professorName = professorName
+        }
+
+        addModule(module) {//add new module
+            this.moduleCount++;
+            this.modules[module.id] = module.serialize();
+            return this.modules[module.id];
+        }
+
+        hasModule(moduleId) {
+            this.modules.forEach((mod) => {
+                let m = Module.deserialize(mod);
+                if (m.id === moduleId) {
+                    return m;
+                }
+            })
+
+            return -1;
+        }
+
+        gatherErrorCount() {
+            let count = 0
+            Object.keys(this.modules).forEach((key) => {
+                let m = Module.deserialize(this.modules[key]);
+
+                Object.keys(m.moduleItems).forEach((key) => {
+                    let i = ModuleItem.deserialize(m.moduleItems[key]);
+
+                    count += i.count;
+                })
+            })
+
+            return count;
+        }
+
+        setProfName(name) { this.professorName = name; }
+
+        modulesCheckedCount() {
+            let count = 0;
+            Object.keys(this.modules).forEach((key) => {
+                let m = Module.deserialize(this.modules[key]);
+
+                if (m.checked()) {
+                    count++;
+                }
+            })
+
+            return count;
+        }
+
+        setModule(module) {
+            this.modules[module.id] = module.serialize();
+        }
+
+        addError(e, pageId) {
+            //returns desired module (or a new copy if it doesn't exist) as Module Item
+            Object.keys(this.modules).forEach((key) => {
+                let module = Module.deserialize(this.modules[key]);
+
+                Object.keys(module.moduleItems).forEach((_key) => {
+                    let item = ModuleItem.deserialize(module.moduleItems[_key]);
+
+                    if (item.id = pageId) {
+                        item.addError(e);
+                        module.moduleItems[_key] = item.serialize();
+                        this.modules[key] = module.serialize();
+                    }
+                })
+            });
+            this.totalErrors += 1;
+        }
+
+        removeError(errorId, saveInfo) {
+            //returns desired module (or a new copy if it doesn't exist) as Module Item
+            _module.removeError(errorId, saveInfo);
+            this.setModule(_module);
+            this.totalErrors--;
+        }
+
+        fetchModuleItem(url) {
+            let moduleItem;
+            Object.keys(this.modules).forEach((key) => {
+                if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
+                let m = Module.deserialize(this.modules[key]);
+
+                Object.keys(m.moduleItems).forEach((_key) => {
+                    if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
+                    let i = ModuleItem.deserialize(m.moduleItems[_key]);
+
+                    //check by module item id
+                    if (url.includes(i.id)) {
+                        moduleItem = i;
+                    }
+
+                    //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                    if (url.includes(i.id2)) {
+                        moduleItem = i;
+                    }
+                })
+            })
+
+            return moduleItem.serialize();
+        }
+
+        fetchModule(url) {
+            let module;
+            Object.keys(this.modules).forEach((key) => {
+                if (module != null && module != undefined) { return module; }
+                let m = Module.deserialize(this.modules[key]);
+
+                Object.keys(m.moduleItems).forEach((_key) => {
+                    if (module != null && module != undefined) { return module; }
+                    let i = ModuleItem.deserialize(m.moduleItems[_key]);
+
+                    //check by module item id
+                    if (url.includes(i.id)) {
+                        module = m;
+                    }
+
+                    //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                    if (url.includes(i.id2)) {
+                        module = m;
+                    }
+                })
+            })
+
+            return module.serialize();
+        }
+
+        serialize() {//serialize course for JSON
+            return JSON.stringify(this);
+        }
+
+        static deserialize(serialized) {
+            const obj = JSON.parse(serialized);
+            return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
+        }
+    }
+    class Module {
+
+        constructor(number, title, published = true, moduleItems = {}, count = 0) {
+            this.moduleItems = moduleItems;
+            this.count = count;
+            this.id = number;
+            this.errorCount;
+            this.title = title;
+            this.published = published;
+        }
+
+        addItem(item) {
+            this.count++;
+            this.moduleItems[item.id] = item.serialize();
+            return this.moduleItems[item.id];
+        }
+
+        addError(e, saveInfo) {
+            let item = this.getModuleItem(saveInfo);
+            item.addError(e)
+            this.setModuleItem(item);
+        }
+
+        removeError(errorId, saveInfo) {
+            let item = this.getModuleItem(saveInfo);
+            item.removeError(errorId)
+            this.setModuleItem(item);
+        }
+
+        getModuleItem(saveInfo) {
+            let _item;
+
+            //check if module Item already created
+            if (this.moduleItemExists(saveInfo.moduleItemId)) {
+                _item = this.moduleItems[saveInfo.moduleItemId];
+            }
+
+            if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
+
+            //recursion | return new module if one not found
+            this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
+            return this.getModuleItem(saveInfo);
+        }
+
+        moduleItemExists(moduleItemId) {
+            let condition = false;
+            Object.keys(this.moduleItems).forEach(function (key) {
+                if (moduleItemId === key) {
+                    condition = true;
+                    return condition;
+                }
+            });
+
+            return condition;
+        }
+
+        checked() {
+            if (this.count < 1) { return false; }
+
+            let modules = this.moduleItems;
+            Object.keys(this.moduleItems).forEach(function (key) {
+                let item = ModuleItem.deserialize(modules[key]);
+                if (item.checked === false) {
+                    return false;
+                }
+            })
+
+            return true;
+        }
+
+        setModuleItem(moduleItem) {
+            this.moduleItems[moduleItem.id] = moduleItem.serialize();
+        }
+
+        serialize() {
+            return JSON.stringify(this);
+        }
+
+        static deserialize(serialized) {
+            const obj = JSON.parse(serialized);
+            return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
+        }
+    }
+    class ModuleItem {
+
+        constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
+            this.errors = errors;
+            this.count = count;
+            this.id = id;
+            this.url = url;
+            if (title === null) {
+                this.title = "Placeholder Title";
+            }
+            else {
+                this.title = title;
+            }
+            this.type = type;
+            this.checked = checked;
+            this.id2 = id2;
+        }
+
+        addError(e) {
+            //grab error or make a new one if needed
+            if (this.errorArrayExists(e)) {
+                this.errors[e.name].push(e.serialize());
+            }
+            else {
+                this.errors[e.name] = [];
+                this.errors[e.name].push(e.serialize());
+            }
+            this.count++;
+        }
+
+        //remove error within object. Return removed error for remove
+        //in other areas
+        removeError(id) {
+            //remove error from list
+            for (let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
+                if (Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
+                    this.count--;
+                    //remove error from page and return
+                    return this.errors[id.split('-')[0]].splice(i, 1);
+                }
+            }
+        }
+
+        findErrorLocation(id) {
+            let _key, index;
+            Object.keys(this.errors).forEach(key => {
+                for (let i = 0; i < this.errors[key].length; i++) {
+                    let errorId = JSON.parse(this.errors[key][i]).id;
+                    if (errorId === id) {
+                        _key = key;
+                        index = i;
+                    }
+                }
+            });
+
+            const response = {
+                index: index,
+                key: _key,
+            }
+
+            return response;
+        }
+
+        addChangeToError(id, change) {
+            //grab location of error
+            const location = this.findErrorLocation(id);
+
+            //deserealize error and add change
+            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+            error.addChange(change);
+
+            this.errors[location.key][location.index] = error.serialize();
+        }
+
+        removeChangeFromError(id, change) {
+            //grab location of error
+            const location = this.findErrorLocation(id);
+
+            //deserealize error and add change
+            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+            error.removeChange(change);
+
+            this.errors[location.key][location.index] = error.serialize();
+        }
+
+        errorArrayExists(e) {
+            let condition = false;
+            Object.keys(this.errors).forEach(function (key) {
+                if (e.name === key) {
+                    condition = true;
+                    return condition;
+                }
+            });
+
+            return condition;
+        }
+
+        errorCountAll() {
+            return this.count;
+        }
+
+        errorCountSingle(name) {
+            const tempJSON = JSON.parse(this.errors);
+
+            //if specific errors exist
+            if (name in tempJSON) {
+                return tempJSON[name].length;
+            } else {//if error type not on page
+                return 0;
+            }
+        }
+
+        errorsList() {
+            return this.errors;
+        }
+
+        serialize() {
+            return JSON.stringify(this);
+        }
+
+        static deserialize(serialized) {
+            const obj = JSON.parse(serialized);
+            return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
+        }
+    }
+    class Page_Error {
+        constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1, match = "", changes = {}, required = false) {
+            this.name = name;
+            this.required = required;
+            this.startIndex = startIndex;
+            this.endIndex = endIndex;
+            this.id = id
+            this.path = path;
+            this.changes = changes;
+            this.match = match;
+        }
+
+        serialize() {
+            return JSON.stringify(this);
+        }
+
+        addChange(change) {
+            this.changes[change.key] = change.value;
+            console.log(this);
+        }
+
+        removeChange(change) {
+            delete this.changes[change.key];
+            console.log(this);
+        }
+
+        static generateRandomId(name) {
+            return (
+                name +
+                '-' +
+                Math.floor(Math.random() * 9999).toString() +
+                '-' +
+                Math.floor(Math.random() * 9999).toString() +
+                '-' +
+                Date.now().toString()
+            )
+        }
+
+        static deserialize(serialized) {
+            let obj;
+
+            //try and parse
+            try {
+                obj = JSON.parse(serialized);
+            }
+            catch {//if fail, serialize, then try and parse again
+                obj = JSON.parse(JSON.stringify(serialized));
+            }
+
+            return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
+        }
+    }
 
     let _errors = new Array();
     let contentEl;
     const textLookUp = "#:~:text=";
     let activeElement = null, activeRange = null;
+    let errorsDisplayed = false;
     /* HTML Chunks to insert into DOM */
 
     //HTML CHunks reference document; to query for needed chunks
@@ -912,9 +912,9 @@ function createCombo(id) {
 
         //setup to find the index of current node
         let offset = 0;//account for invisible '#text' nodes
-        for(let i = 0; i < node.parentNode.childNodes.length; i++) {
-            if(node.parentNode.childNodes[i].nodeName === '#text') {offset++;}
-            if(node === node.parentNode.childNodes[i]) {                
+        for(let i = 0; i < node.parentNode.children.length; i++) {
+            if(node.parentNode.children[i].nodeName === '#text') {offset++;}
+            if(node === node.parentNode.children[i]) {                
                 //add index to node path string
                 str += i + '-' + offset;
 
@@ -954,17 +954,17 @@ function createCombo(id) {
         let number1 = parseInt(value[0]);
         let number2 = parseInt(value[1]);
         //if webpage is an edit page, alter index
-        let index = (window.location.href.includes('edit')) ? 
+        let index = (window.location.href.includes('/edit')) ? 
         parseInt(number1 - number2) : number1;
 
         //if there is only a single element left
         //return desired node
         if(indexes.length < 2) {
-            return parentEl.childNodes[index];//return desired element
+            return parentEl.children[index];//return desired element
         }
 
         //recurse to locate node 
-        return searchNode(parentEl.childNodes[parseInt(index)], indexes.join('$'));
+        return searchNode(parentEl.children[parseInt(index)], indexes.join('$'));
     }
 
     /**
@@ -1152,7 +1152,7 @@ function createCombo(id) {
         createCombo('CAT-combo1');
 
         //event listerner: add new error
-        btn.addEventListener('click', addError.bind());
+        btn.querySelector('button').addEventListener('click', addError.bind());
         
         console.log(btn);
     }
@@ -1160,10 +1160,10 @@ function createCombo(id) {
     /**
      * Add error to course
      */
-    const addError = () => {
+    const addError = async () => {
         //find course
         let course;
-        chrome.storage.local.get().then(result => {
+        await chrome.storage.local.get().then(result => {
             Object.keys(result).forEach(key => {
                 //find current course
                 if (window.location.href.includes(key)) {
@@ -1175,18 +1175,28 @@ function createCombo(id) {
         //find page and module
         let moduleItem = ModuleItem.deserialize(course.fetchModuleItem(window.location.href));
         let module = Module.deserialize(course.fetchModule(window.location.href));
+        let error;
 
         if (activeRange) {
-            moduleItem.addError(
-                new Page_Error(
-                    document.getElementById('error-type').value,
-                    buildNodePath(activeElement),
-                    Page_Error.generateRandomId(errorType),
-                    activeRange.startOffset,
-                    activeRange.endOffset,
-                    activeRange.toString(),
-                ).serialize()
+            error = new Page_Error(
+                document.getElementById('error-type').value,
+                buildNodePath(activeElement),
+                Page_Error.generateRandomId(document.getElementById('error-type').value),
+                activeRange.startOffset,
+                activeRange.endOffset,
+                activeRange.toString(),
             );
+
+            moduleItem.addError(error);
+        }
+        else {
+            error = new Page_Error(
+                document.getElementById('error-type').value,
+                buildNodePath(activeElement),
+                Page_Error.generateRandomId(document.getElementById('error-type').value)
+            );
+
+            moduleItem.addError(error);
         }
 
         module.setModuleItem(moduleItem)
@@ -1198,6 +1208,111 @@ function createCombo(id) {
         activeRange = null;
 
         document.getElementById('add-error-button').classList.remove('display');
+    
+        if (!errorsDisplayed) {
+            //array of errors display
+            let errors = new Array();
+
+            Object.keys(moduleItem.errors).forEach(key => {
+                moduleItem.errors[key].forEach(e => {
+                    errors.push(Page_Error.deserialize(e));
+                })
+            })
+
+            displayErrors(errors);
+        }else {
+            displayErrorIndividual(error);
+        }
+        
+    }
+
+    const displayErrorIndividual = (error) => {
+        let range = document.createRange()//new display range
+        let node;//node to find
+        if (window.location.href.includes('/edit') && window.location.href.includes('pages')) {
+            node = searchNode(contentEl, updateSearchPath(_e.path, -1));
+        } else {
+            node = searchNode(contentEl, error.path);
+        }
+
+        range.selectNodeContents(node);//direct to node contents
+
+        //display part of element
+        if (error.match.length > 0) {//if matched to instance within element
+
+            let start = error.startIndex;//adjustable value for start index
+            //set range start and node
+            const setRangeRecursion_Start = (node) => {
+                if (start < 0) {//skip the rest of recursion if solution is found
+                    return;
+                }
+
+                //if node is an element node
+                if (node.nodeType === 1) {
+
+                    //iterate through all child nodes
+                    node.childNodes.forEach(n => {
+                        setRangeRecursion_Start(n);
+                    })
+                }
+
+                //if node is a #text node
+                if (node.nodeType === 3) {
+
+                    //check if start index fits within element string
+                    if (node.textContent.length > start) {
+                        console.log(node.textContent);
+                        range.setStart(node, start);
+                        start = -1;//set start to -1 as a form of skipping the rest of recursion
+                        return;
+                    }
+
+                    start -= node.textContent.length;
+                }
+            }
+
+            setRangeRecursion_Start(node);
+
+            let end = error.endIndex;//adjustable value for end index
+            //set range end and node
+            const setRangeRecursion_End = (node) => {
+                if (end < 0) {//skip the rest of recursion if solution is found
+                    return;
+                }
+
+                //if node is an element node
+                if (node.nodeType === 1) {
+
+                    //iterate through all child nodes
+                    node.childNodes.forEach(n => {
+                        setRangeRecursion_End(n);
+                    })
+                }
+
+                //if node is a #text node
+                if (node.nodeType === 3) {
+
+                    //check if start index fits within element string
+                    if (node.textContent.length > end) {
+                        console.log(node.textContent);
+                        range.setEnd(node, end);
+                        end = -1;//set start to -1 as a form of skipping the rest of recursion
+                        return;
+                    }
+
+                    end -= node.textContent.length;
+                }
+            }
+
+            setRangeRecursion_End(node);
+
+            //add range to array as partial element
+            createEditableErrorInput(range, error);
+            return;
+        }
+
+        //add range to array as full element
+        createEditableErrorElement(range, error);
     }
 
     /**
@@ -1249,6 +1364,7 @@ function createCombo(id) {
 
             //check if invisible link
             if(a.innerText.length < 1) {
+                console.log(a.innerText);
                 errorsFoundList.push(
                     new Page_Error(
                         'Link(invisible)',
@@ -1551,6 +1667,15 @@ function createCombo(id) {
      * @param {Array<Page_Error>} errors a list of serialized Page Error objects 
      */
     const displayErrors = (errors) => {
+        if(errorsDisplayed) {
+            return;
+        }
+
+        errorsDisplayed = true;
+
+        //remove overflow from contentEl
+        contentEl.style.overflowX = 'visible'
+
         //list of ranges
         //list is used to avoid altering elements until end
         let ranges = new Array()
@@ -1568,7 +1693,7 @@ function createCombo(id) {
 
             let range = document.createRange()//new display range
             let node;//node to find
-            if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+            if(window.location.href.includes('/edit') && window.location.href.includes('pages')) {
                 node = searchNode(contentEl,updateSearchPath(_e.path, -1));
             } else {
                 node = searchNode(contentEl, _e.path);
@@ -1660,7 +1785,7 @@ function createCombo(id) {
         ranges.forEach(r => {
             let node;//node to find
             //adjust search pattern if on edit page
-            if (window.location.href.includes('edit') && window.location.href.includes('pages')) {
+            if (window.location.href.includes('/edit') && window.location.href.includes('pages')) {
                 node = searchNode(contentEl, updateSearchPath(r.error.path, -1));
             } else {
                 node = searchNode(contentEl, r.error.path);
@@ -1687,7 +1812,7 @@ function createCombo(id) {
         //find node and raise line height
         let element;
         //if 'edit' on 'pages' page, change path
-        if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+        if(window.location.href.includes('/edit') && window.location.href.includes('pages')) {
             element = searchNode(contentEl, updateSearchPath(error.path, -1));
         } else {
             element = searchNode(contentEl, error.path);
@@ -1796,7 +1921,7 @@ function createCombo(id) {
         //find node
         let element;
         //if 'edit' on 'pages' page, change path
-        if(window.location.href.includes('edit') && window.location.href.includes('pages')) {
+        if(window.location.href.includes('/edit') && window.location.href.includes('pages')) {
             element = searchNode(contentEl, updateSearchPath(error.path, -1));
         } else {
             element = searchNode(contentEl, error.path);
@@ -2008,8 +2133,6 @@ function createCombo(id) {
     const saveCourse = (course) => {
         chrome.storage.local.set({
             [Course.deserialize(course).id]: course,
-        }).then(result => {
-            console.log(result);
         })
     }
 
@@ -2106,7 +2229,7 @@ function createCombo(id) {
         console.log(HTML_CHUNK_REF_DOC);
 
         //if not on edit page
-        if (!window.location.href.includes('edit')) {
+        if (!window.location.href.includes('/edit')) {
             //add error btn to DOM
             setErrorBtn();
 
@@ -2178,9 +2301,11 @@ function createCombo(id) {
             if (selection.toString().length > 0) {
                 activeElement = selection.focusNode.parentElement;
                 activeRange = selection.getRangeAt(0);
+                console.log(selection.toString());
             } else {
                 activeElement = selection.focusNode.parentElement;
                 activeRange = null;
+                console.log(selection.focusNode.parentElement);
             }
         }
 
@@ -2245,8 +2370,10 @@ function createCombo(id) {
                             contentEl = document.querySelectorAll('#assignment_show div.description')[0];
                         }
 
-                        //if edit version of webpage
-                        if (window.location.href.includes('edit')) {
+                        console.log(contentEl);
+
+                        //if 'edit' version of webpage
+                        if (window.location.href.includes('/edit')) {
                             const iframe = document.getElementById('wiki_page_body_ifr');
                             const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
 
