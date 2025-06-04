@@ -303,11 +303,11 @@ h6::after {
 }
 
 .focus-element {
-    animation: focus-in 300ms ease-in-out;
+    animation: focus-in 300ms ease-in-out forwards;
 }
 
 .unfocus-element {
-    animation: focus-out 300ms ease-in-out;
+    animation: focus-out 300ms ease-in-out forwards;
 }
 
 @keyframes focus-in {
