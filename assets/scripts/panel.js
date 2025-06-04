@@ -359,6 +359,8 @@ async function CreateDisplayWindowElement(response) {
 }
 
 document.getElementById("add").addEventListener("click" , (async () => {
+    if(document.getElementById('element-selected').getAttribute('path') === 'null') {return; }
+
     //skip if error type is not selected
     if(document.getElementById("error-type").getAttribute("value").length < 2) {
         alert("no Error type selected");
@@ -366,20 +368,13 @@ document.getElementById("add").addEventListener("click" , (async () => {
     }
 
     let selected = findError();
-    console.log(selected);
 
     //grab textlookup key for highlighted text
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR"});
+    const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR", errorType: selected});
 
-    //create error
-    let name = selected.innerText;
-    let key = "Nothing to Show";
-    // TO FIX <- error hrefs are broken
-
-    let e = new Page_Error(name, key);
-    
-    addError(e);
+    //Display Course Page again
+    pageSetup();
 }));
 
 async function addError(e) {

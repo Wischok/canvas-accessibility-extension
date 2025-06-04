@@ -1184,7 +1184,7 @@ class Pseudo_Element {
     /**
      * Add error to course
      */
-    const addError = async () => {
+    const addError = async (errorType) => {
         //find course
         let course;
         await chrome.storage.local.get().then(result => {
@@ -1203,9 +1203,9 @@ class Pseudo_Element {
 
         if (activeRange) {
             error = new Page_Error(
-                document.getElementById('error-type').value,
+                errorType,
                 buildNodePath(activeElement),
-                Page_Error.generateRandomId(document.getElementById('error-type').value),
+                Page_Error.generateRandomId(errorType),
                 activeRange.startOffset,
                 activeRange.endOffset,
                 activeRange.toString(),
@@ -1230,8 +1230,6 @@ class Pseudo_Element {
 
         activeElement = null;
         activeRange = null;
-
-        document.getElementById('add-error-button').classList.remove('display');
     
         if (!errorsDisplayed) {
             //array of errors display
@@ -2402,7 +2400,7 @@ class Pseudo_Element {
 
     chrome.runtime.onMessage.addListener(
         async function (request, sender, sendResponse) {
-            const { type, value, moduleItemId, pageTitle, pageType, courseId, url, errors, error, path } = request;
+            const { type, value, moduleItemId, pageTitle, pageType, courseId, url, errors, error, path, errorType } = request;
 
             if (type === "AUDIT") {
                 audit().then(
@@ -2425,61 +2423,7 @@ class Pseudo_Element {
 
             //add error request
             if (type === "ADD-ERROR") {
-                //check for highlighted text
-                var selected = getSelection();
-                var range = selected.getRangeAt(0);
-
-                if(selected === null || selected === undefined) {
-                    sendResponse({ textLookUpKey: "none" });
-                    return;
-                }
-
-                if(selected.toString().length < 1) {
-                    sendResponse({ textLookUpKey: "none" });
-                    return;
-                }
-
-                //wrap around beginning and end of words
-                index = range.startOffset;
-                while(index > 0) {
-                    let temp = index - 1;
-                    if (range.commonAncestorContainer.nodeValue[temp] == " ") {
-                        range.setStart(range.commonAncestorContainer.parentNode.firstChild, index);
-                        break;
-                    }
-
-                    if(index < -9999) {
-                        alert("infinite loop");
-                        return;
-                    }
-
-
-                    index--;
-                }
-                index = range.endOffset;
-                while(index < range.commonAncestorContainer.nodeValue.length - 1) {
-                    let temp = index + 1;
-                    if(range.commonAncestorContainer.nodeValue[temp] == ' ') {
-                        range.setEnd(range.commonAncestorContainer.parentNode.firstChild, index + 1);
-                        break;
-                    }
-
-                    if(index > 9999) {
-                        alert("infinite loop");
-                        return;
-                    }
-
-                    index++;
-                }
-
-                if (range.toString().length > 1) {
-                    sendResponse({ textLookUpKey: range.toString().replaceAll(" ", "%20") });
-                }
-                else {
-                    sendResponse({ textLookUpKey: "none" });
-                }
-
-                return;
+                addError(errorType);
             }
 
             if (type === "SHOW-ERROR") {

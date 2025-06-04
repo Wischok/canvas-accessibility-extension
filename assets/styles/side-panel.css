@@ -311,6 +311,7 @@ main:has(.page-errors-container.display) .short-details .p3 {
     justify-content: start;
     align-items: center;
     min-height: 100%;
+    padding-right: 5px;
 }
 
 .html-window .wrapper li {
@@ -344,6 +345,53 @@ main:has(.page-errors-container.display) .short-details .p3 {
 
 .container {
     display: none;
+}
+
+.combo {
+    position: relative;
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--color-1);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.combo-option {
+    padding-block: 6px;
+    border-bottom: 1px solid #07267512;
+    cursor: pointer;
+}
+
+.combo-option:hover {
+    border: 2px solid #0a6cff;
+    background-color: #ec6d28c5;
+}
+
+.combo .combo-option:nth-child(even) {
+    background-color: #f7fbff;
+}
+
+.combo-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    border: 2px solid #0a6cff;
+    display: none;
+    width: 100%;
+    background-color: white;
+    max-height: 300px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    overflow: scroll;
+    overflow-x: hidden;
+    z-index: 2;
+}
+
+.combo-input[aria-expanded="true"] {
+    margin-bottom: 0;
+}
+
+.combo-input[aria-expanded="true"] + .combo-menu {
+    display: block;
 }
 
 /* course description 1 */

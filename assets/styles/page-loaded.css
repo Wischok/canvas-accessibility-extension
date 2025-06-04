@@ -317,17 +317,17 @@ h6::after {
         -moz-box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
     }
     to {
-        box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
-        -webkit-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
-        -moz-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+        box-shadow: 0px 0px 16px 4px rgba(148, 123, 13, 0.724);
+        -webkit-box-shadow: 0px 0px 16px 4px rgba(148, 123, 13, 0.724);
+        -moz-box-shadow: 0px 0px 16px 4px rgba(148, 123, 13, 0.724);
     }
 }
 
 @keyframes focus-out {
     from {
-        box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
-        -webkit-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
-        -moz-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+        box-shadow: 0px 0px 16px 4px rgba(148, 123, 13, 0.724);
+        -webkit-box-shadow: 0px 0px 16px 4px rgba(148, 123, 13, 0.724);
+        -moz-box-shadow: 0px 0px 16px 4px rgba(148, 123, 13, 0.724);
     }
     to {
         
