@@ -53,4 +53,4 @@ class Accordion {
   }
 }
 
-export function initializeAccordion(accordionEl) {new Accordion(accordionEl)};
+export function initializeAccordion(accordionEl) {return new Accordion(accordionEl)};

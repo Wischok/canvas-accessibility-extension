@@ -947,9 +947,9 @@ class Pseudo_Element {
 
         //setup to find the index of current node
         let offset = 0;//account for invisible '#text' nodes
-        for(let i = 0; i < node.parentNode.children.length; i++) {
-            if(node.parentNode.children[i].nodeName === '#text') {offset++;}
-            if(node === node.parentNode.children[i]) {
+        for (let i = 0; i < node.parentNode.children.length; i++) {
+            if (node.parentNode.children[i].nodeName === '#text') { offset++; }
+            if (node === node.parentNode.children[i]) {
                 //add index to node path string
                 str += i + '-' + offset;
 
@@ -957,6 +957,8 @@ class Pseudo_Element {
                 break;
             }
         }
+            
+        
 
         //if parent node is the main content element, end recursion
         if(node.parentNode === contentEl) {
@@ -1020,7 +1022,8 @@ class Pseudo_Element {
     }
 
     /* Audit Regex Combinations and checking requirements */
-    const regexAbbreviation = /((?<![a-z])[a-z]{1,3}(\.|\/)([a-z]{1,1})?(\.|\/)?)|\bch\b|\bp\b|\bpp\b/idgm;
+    // const regexAbbreviation = /((?<![a-z])[a-z]{1,3}(\.|\/)([a-z]{1,1})?(\.|\/)?)|\bch\b|\bp\b|\bpp\b/idgm;
+    const regexAbbreviation = /[^a-z](ch |p\.|pp\.|ch\. )/idgm;
     const regexListNo = /^(\()?\d{1,2}(\.|\)|\-){1,1}/gmd;
     const regexListPart = /^\bPart\s{1,2}\d\b/gmd;
     const regexListHyphen = /^[-]{1,2}\s{1,1}/gmd;
@@ -1215,9 +1218,9 @@ class Pseudo_Element {
         }
         else {
             error = new Page_Error(
-                document.getElementById('error-type').value,
+                errorType,
                 buildNodePath(activeElement),
-                Page_Error.generateRandomId(document.getElementById('error-type').value)
+                Page_Error.generateRandomId(errorType)
             );
 
             moduleItem.addError(error);
@@ -1246,6 +1249,7 @@ class Pseudo_Element {
             displayErrorIndividual(error);
         }
         
+        await chrome.runtime.sendMessage({type: "RELOAD"});
     }
 
     const displayErrorIndividual = (error) => {
@@ -1383,21 +1387,23 @@ class Pseudo_Element {
             }
 
             //check if invisible link
-            if(a.innerText.length < 1) {
-                errorsFoundList.push(
-                    new Page_Error(
-                        'Link(invisible)',
-                        buildNodePath(a),
-                        Page_Error.generateRandomId('Link(invisible)'),
-                    ).serialize()
-                )
+            if(a.innerText.length < 1 && !a.classList.contains('external')) {
+                if (!a.hasChildNodes) {
+                    errorsFoundList.push(
+                        new Page_Error(
+                            'Link(invisible)',
+                            buildNodePath(a),
+                            Page_Error.generateRandomId('Link(invisible)'),
+                        ).serialize()
+                    )
 
-                //skip checking for other errors if link is invisible
-                return;
+                    //skip checking for other errors if link is invisible
+                    return;
+                }
             }
 
             //check if visible URL
-            errorsFoundList.push(...auditRegexElement(a, regexLinkURL, 'Link(invisible)'));
+            errorsFoundList.push(...auditRegexInstaces(a, regexLinkURL, 'Link(invisible)'));
         })
 
         return errorsFoundList;
@@ -2192,7 +2198,7 @@ class Pseudo_Element {
         //remove error from DOM
         removeErrorFromDom(node, Page_Error.deserialize(error));
         
-        const response = await chrome.runtime.sendMessage({type: "ERROR-REMOVED"});
+        const response = await chrome.runtime.sendMessage({type: "RELOAD"});
     }
 
     const toggleHighlight = (id) => {
@@ -2263,15 +2269,16 @@ class Pseudo_Element {
     const getSelection = async () => {
         //get selection
         var selection;
-        if (window.getSelection) {
+        if (window.getSelection()) {
             selection = window.getSelection();
         } else if (document.getSelection) {
             selection = document.getSelection();
         } else if (document.selection) {
             selection = document.selection.createRange().text;
-        } else {selection = null; }
+        } else { selection = null; }
 
-        //if selected element exists within contentEl
+        console.log(selection);
+
         if (contentEl.contains(selection.focusNode.parentElement)) {
             //if selection is text
             if (selection.toString().length > 0) {
@@ -2283,9 +2290,14 @@ class Pseudo_Element {
             }
         }
 
+        if (activeElement === contentEl) {
+            activeElement = selection.focusNode.firstChild;
+        }
+
+
         let pseudoEl = BuildPseudoElement(activeElement);
 
-        const response = await chrome.runtime.sendMessage({type: "ELEMENT-SELECTED", pseudoElement: pseudoEl});
+        const response = await chrome.runtime.sendMessage({ type: "ELEMENT-SELECTED", pseudoElement: pseudoEl });
     }
 
     //create a psuedoelement object
@@ -2381,6 +2393,13 @@ class Pseudo_Element {
                     iframeDocument.head.appendChild(styleEl);//append to head
                 } else {
                     contentEl.addEventListener('mouseup', getSelection.bind());
+                    //add alt attribute to paragraph elements with an img
+                    contentEl.querySelectorAll('p').forEach(p => {
+                        let img = p.querySelector('img');
+                        if (img !== null && img !== undefined) {
+                            p.setAttribute('alt', img.getAttribute('alt'));
+                        }
+                    })
                 }
 
                 /* Load stylesheet into current document */
@@ -2397,6 +2416,45 @@ class Pseudo_Element {
             NewCoursePageLoaded();
         }
     })
+
+    const isElementInViewport = (el) => {
+
+        // Special bonus for those using jQuery
+        if (typeof jQuery === "function" && el instanceof jQuery) {
+            el = el[0];
+        }
+
+        var rect = el.getBoundingClientRect();
+
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /* or $(window).height() */
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth) /* or $(window).width() */
+        );
+    }
+
+    function centerElementInViewport(element) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const elementWidth = element.offsetWidth;
+        const elementHeight = element.offsetHeight;
+
+        const centerX = (viewportWidth - elementWidth) / 2;
+        const centerY = (viewportHeight - elementHeight) / 2;
+
+        const scrollX = window.pageXOffset;
+        const scrollY = window.pageYOffset;
+
+        const scrollToX = centerX + scrollX;
+        const scrollToY = centerY + scrollY;
+
+        window.scrollTo({
+            top: scrollToY,
+            left: scrollToX,
+            behavior: 'smooth' // Optional: smooth scrolling animation
+        });
+    }
 
     chrome.runtime.onMessage.addListener(
         async function (request, sender, sendResponse) {
@@ -2423,6 +2481,7 @@ class Pseudo_Element {
 
             //add error request
             if (type === "ADD-ERROR") {
+                console.log(errorType);
                 addError(errorType);
             }
 
@@ -2455,6 +2514,10 @@ class Pseudo_Element {
 
                     if(el.classList.contains('unfocus-element')) {
                         el.classList.remove('unfocus-element');
+                    }
+
+                    if(!isElementInViewport(el)) {
+                        el.scrollIntoView({behavior: "smooth", block: "center"})
                     }
 
                     el.classList.add('focus-element');

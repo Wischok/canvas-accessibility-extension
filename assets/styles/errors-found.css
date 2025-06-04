@@ -149,7 +149,7 @@ p:has(img.highlight) {
     transition: all 200ms ease-in-out;
     font-size: 14px;
     position: relative;
-    display: inline-block;
+    display: inherit;
     width: 100%;
 }
 

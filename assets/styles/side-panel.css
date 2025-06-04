@@ -289,7 +289,7 @@ main:has(.page-errors-container.display) .short-details .p3 {
 
 .html-window {
     height: 125px;
-    font-size: 12px;
+    font-size: 11px;
     background-color: var(--background-color-3);
     overflow-y: scroll;
     width: 100%;

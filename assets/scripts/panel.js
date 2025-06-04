@@ -183,7 +183,7 @@ function createAccordionPair_Module(module, index) {
     })
     
     //setup accordion javascript
-    initializeAccordion(head);
+    console.log(initializeAccordion(head));
 }
 
 async function displayCoursePage() {
@@ -229,7 +229,7 @@ async function displayCoursePage() {
     })
 }
 
-function createAccordionPair_ModuleItem(list, key, index) {    
+async function createAccordionPair_ModuleItem(list, key, index) {    
     //button / accordion heading
     let _li = HTML_CHUNKS_DOC.querySelector('.error-type').cloneNode(true);
 
@@ -252,6 +252,10 @@ function createAccordionPair_ModuleItem(list, key, index) {
 
         let li = HTML_CHUNKS_DOC.querySelector('.region li').cloneNode(true);
         li.id = e.id;
+
+        const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+        li.addEventListener('mouseenter', HighlightElement.bind(this, tab.id, e.path))
+        li.addEventListener('mouseleave', UnHighlightElement.bind(this, tab.id, e.path));
 
         let button2 = li.querySelector('button');
         if (e.match.length > 0) { li.title = button2.setAttribute('title', e.match) };
@@ -284,6 +288,20 @@ function createAccordionPair_ModuleItem(list, key, index) {
     initializeAccordion(_li);
 }
 
+async function HighlightElement(id, path) {
+    const response = await chrome.tabs.sendMessage(id, {
+        type: "SELECTED-ELEMENT-FOCUS",
+        path: path
+    });
+}
+
+async function UnHighlightElement(id, path) {
+    const response = await chrome.tabs.sendMessage(id, {
+        type: "SELECTED-ELEMENT-UNFOCUS",
+        path: path
+    });
+}
+
 function saveCourse(course) {
     chrome.storage.local.set({
         [Course.deserialize(course).id]: course,
@@ -301,7 +319,7 @@ function fetchCourse(id) {
 function findError() {
     //grab error information
     let errorElements = document.getElementsByClassName("combo-option");
-    let selected;
+    let selected = null;
     for(let i = 0; i < errorElements.length; i++) {
         if(errorElements[i].getAttribute("aria-selected") === "true") {
             selected = errorElements[i];
@@ -369,28 +387,14 @@ document.getElementById("add").addEventListener("click" , (async () => {
 
     let selected = findError();
 
+    if(selected === null || selected === undefined) {
+        return;
+    }
+
     //grab textlookup key for highlighted text
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    const response = await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR", errorType: selected});
-
-    //Display Course Page again
-    pageSetup();
+    await chrome.tabs.sendMessage(tab.id, {type: "ADD-ERROR", errorType: selected.innerText});
 }));
-
-async function addError(e) {
-    const url = await chrome.tabs.sendMessage(tab.id, {type: "URL"});
-
-    let moduleItem = ModuleItem.deserialize(_course.fetchModuleItem(url.url.toString()));
-    let module = Module.deserialize(_course.fetchModule(url.url.toString()));
-
-    moduleItem.addError(e);
-    module.setModuleItem(moduleItem)
-    _course.setModule(module);
-    _course.errorCount++;
-
-    saveCourse(_course.serialize());
-    displayCoursePage();
-}
 
 async function removeError(id) {
     const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
@@ -498,11 +502,15 @@ document.getElementById('element-selected').addEventListener('mouseleave', async
 })
 
 async function pageSetup() {
-    //default title
+    //reset title
     document.getElementById('title').innerText = 'WisCAT';
 
+    //reset element selected
+    document.getElementById('element-selected').innerHTML = "";
+    document.getElementById('element-selected').setAttribute('path', 'null');
+
     //reset all panel content containers (no display on all except default, 'generate course')
-    if(!document.getElementById('course-generation-container').classList.contains('display')) {
+    if(document.getElementById('course-generation-container').classList.contains('display')) {
         document.getElementById('course-generation-container').classList.remove('display');
     }
     if(document.getElementById('course-short-details-container').classList.contains('display')) {
@@ -618,7 +626,7 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         sendResponse({error: error});
     }
 
-    if(request.type === "ERROR-REMOVED") {
+    if(request.type === "RELOAD") {
         pageSetup();
     }
 
