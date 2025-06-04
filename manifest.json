@@ -16,6 +16,12 @@
         "sidePanel",
         "debugger"
     ],
+    "content_scripts": [
+        {
+            "matches": ["https://*.instructure.com/*"],
+            "js": ["/assets/scripts/content-script.js"]
+        }
+    ],
     "commands": {
         "_execute_action": {
             "suggested_key": {

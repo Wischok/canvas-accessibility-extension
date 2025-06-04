@@ -301,3 +301,38 @@ h6::after {
     justify-content: center;
     align-items: center;
 }
+
+.focus-element {
+    animation: focus-in 300ms ease-in-out;
+}
+
+.unfocus-element {
+    animation: focus-out 300ms ease-in-out;
+}
+
+@keyframes focus-in {
+    from {
+        box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
+        -webkit-box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
+        -moz-box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
+    }
+    to {
+        box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+        -webkit-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+        -moz-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+    }
+}
+
+@keyframes focus-out {
+    from {
+        box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+        -webkit-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+        -moz-box-shadow: 0px 0px 16px 4px rgba(228, 242, 21, 0.724);
+    }
+    to {
+        
+        box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
+        -webkit-box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
+        -moz-box-shadow: 0px 0px 16px 4px rgba(227, 242, 21, 0);
+    }
+}

@@ -422,415 +422,450 @@ function createCombo(id) {
     new Select(combo);
 }
 
-(() => {
-    class Course {
+class Course {
 
-        constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
-            this.modules = modules;
-            this.moduleCount = moduleCount;
-            this.id = courseId;
-            this.errorCount = errorCount;
-            this.version = version;
-            this.title = title
-            this.professorName = professorName
-        }
+    constructor(courseId, version, title, modules = {}, moduleCount = 0, errorCount = 0, professorName = "") {
+        this.modules = modules;
+        this.moduleCount = moduleCount;
+        this.id = courseId;
+        this.errorCount = errorCount;
+        this.version = version;
+        this.title = title
+        this.professorName = professorName
+    }
 
-        addModule(module) {//add new module
-            this.moduleCount++;
-            this.modules[module.id] = module.serialize();
-            return this.modules[module.id];
-        }
+    addModule(module) {//add new module
+        this.moduleCount++;
+        this.modules[module.id] = module.serialize();
+        return this.modules[module.id];
+    }
 
-        hasModule(moduleId) {
-            this.modules.forEach((mod) => {
-                let m = Module.deserialize(mod);
-                if (m.id === moduleId) {
-                    return m;
+    hasModule(moduleId) {
+        this.modules.forEach((mod) => {
+            let m = Module.deserialize(mod);
+            if (m.id === moduleId) {
+                return m;
+            }
+        })
+
+        return -1;
+    }
+
+    gatherErrorCount() {
+        let count = 0
+        Object.keys(this.modules).forEach((key) => {
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((key) => {
+                let i = ModuleItem.deserialize(m.moduleItems[key]);
+
+                count += i.count;
+            })
+        })
+
+        return count;
+    }
+
+    setProfName(name) { this.professorName = name; }
+
+    modulesCheckedCount() {
+        let count = 0;
+        Object.keys(this.modules).forEach((key) => {
+            let m = Module.deserialize(this.modules[key]);
+
+            if (m.checked()) {
+                count++;
+            }
+        })
+
+        return count;
+    }
+
+    setModule(module) {
+        this.modules[module.id] = module.serialize();
+    }
+
+    addError(e, pageId) {
+        //returns desired module (or a new copy if it doesn't exist) as Module Item
+        Object.keys(this.modules).forEach((key) => {
+            let module = Module.deserialize(this.modules[key]);
+
+            Object.keys(module.moduleItems).forEach((_key) => {
+                let item = ModuleItem.deserialize(module.moduleItems[_key]);
+
+                if (item.id = pageId) {
+                    item.addError(e);
+                    module.moduleItems[_key] = item.serialize();
+                    this.modules[key] = module.serialize();
                 }
             })
+        });
+        this.totalErrors += 1;
+    }
 
-            return -1;
-        }
+    removeError(errorId, saveInfo) {
+        //returns desired module (or a new copy if it doesn't exist) as Module Item
+        _module.removeError(errorId, saveInfo);
+        this.setModule(_module);
+        this.totalErrors--;
+    }
 
-        gatherErrorCount() {
-            let count = 0
-            Object.keys(this.modules).forEach((key) => {
-                let m = Module.deserialize(this.modules[key]);
+    fetchModuleItem(url) {
+        let moduleItem;
+        Object.keys(this.modules).forEach((key) => {
+            if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
+            let m = Module.deserialize(this.modules[key]);
 
-                Object.keys(m.moduleItems).forEach((key) => {
-                    let i = ModuleItem.deserialize(m.moduleItems[key]);
-
-                    count += i.count;
-                })
-            })
-
-            return count;
-        }
-
-        setProfName(name) { this.professorName = name; }
-
-        modulesCheckedCount() {
-            let count = 0;
-            Object.keys(this.modules).forEach((key) => {
-                let m = Module.deserialize(this.modules[key]);
-
-                if (m.checked()) {
-                    count++;
-                }
-            })
-
-            return count;
-        }
-
-        setModule(module) {
-            this.modules[module.id] = module.serialize();
-        }
-
-        addError(e, pageId) {
-            //returns desired module (or a new copy if it doesn't exist) as Module Item
-            Object.keys(this.modules).forEach((key) => {
-                let module = Module.deserialize(this.modules[key]);
-
-                Object.keys(module.moduleItems).forEach((_key) => {
-                    let item = ModuleItem.deserialize(module.moduleItems[_key]);
-
-                    if (item.id = pageId) {
-                        item.addError(e);
-                        module.moduleItems[_key] = item.serialize();
-                        this.modules[key] = module.serialize();
-                    }
-                })
-            });
-            this.totalErrors += 1;
-        }
-
-        removeError(errorId, saveInfo) {
-            //returns desired module (or a new copy if it doesn't exist) as Module Item
-            _module.removeError(errorId, saveInfo);
-            this.setModule(_module);
-            this.totalErrors--;
-        }
-
-        fetchModuleItem(url) {
-            let moduleItem;
-            Object.keys(this.modules).forEach((key) => {
+            Object.keys(m.moduleItems).forEach((_key) => {
                 if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
-                let m = Module.deserialize(this.modules[key]);
+                let i = ModuleItem.deserialize(m.moduleItems[_key]);
 
-                Object.keys(m.moduleItems).forEach((_key) => {
-                    if (moduleItem != null && moduleItem != undefined) { return moduleItem; }
-                    let i = ModuleItem.deserialize(m.moduleItems[_key]);
+                //check by module item id
+                if (url.includes(i.id)) {
+                    moduleItem = i;
+                }
 
-                    //check by module item id
-                    if (url.includes(i.id)) {
-                        moduleItem = i;
-                    }
-
-                    //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                    if (url.includes(i.id2)) {
-                        moduleItem = i;
-                    }
-                })
+                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                if (url.includes(i.id2)) {
+                    moduleItem = i;
+                }
             })
+        })
 
-            return moduleItem.serialize();
-        }
+        return moduleItem.serialize();
+    }
 
-        fetchModule(url) {
-            let module;
-            Object.keys(this.modules).forEach((key) => {
+    fetchModule(url) {
+        let module;
+        Object.keys(this.modules).forEach((key) => {
+            if (module != null && module != undefined) { return module; }
+            let m = Module.deserialize(this.modules[key]);
+
+            Object.keys(m.moduleItems).forEach((_key) => {
                 if (module != null && module != undefined) { return module; }
-                let m = Module.deserialize(this.modules[key]);
+                let i = ModuleItem.deserialize(m.moduleItems[_key]);
 
-                Object.keys(m.moduleItems).forEach((_key) => {
-                    if (module != null && module != undefined) { return module; }
-                    let i = ModuleItem.deserialize(m.moduleItems[_key]);
+                //check by module item id
+                if (url.includes(i.id)) {
+                    module = m;
+                }
 
-                    //check by module item id
-                    if (url.includes(i.id)) {
-                        module = m;
-                    }
-
-                    //check by secondary module item id (url path or 6-7 digit code - depending on page type)
-                    if (url.includes(i.id2)) {
-                        module = m;
-                    }
-                })
+                //check by secondary module item id (url path or 6-7 digit code - depending on page type)
+                if (url.includes(i.id2)) {
+                    module = m;
+                }
             })
+        })
 
-            return module.serialize();
-        }
-
-        serialize() {//serialize course for JSON
-            return JSON.stringify(this);
-        }
-
-        static deserialize(serialized) {
-            const obj = JSON.parse(serialized);
-            return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
-        }
+        return module.serialize();
     }
-    class Module {
 
-        constructor(number, title, published = true, moduleItems = {}, count = 0) {
-            this.moduleItems = moduleItems;
-            this.count = count;
-            this.id = number;
-            this.errorCount;
+    serialize() {//serialize course for JSON
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Course(obj.id, obj.version, obj.title, obj.modules, obj.moduleCount, obj.errorCount, obj.professorName);
+    }
+}
+
+class Module {
+
+    constructor(number, title, published = true, moduleItems = {}, count = 0) {
+        this.moduleItems = moduleItems;
+        this.count = count;
+        this.id = number;
+        this.errorCount;
+        this.title = title;
+        this.published = published;
+    }
+
+    addItem(item) {
+        this.count++;
+        this.moduleItems[item.id] = item.serialize();
+        return this.moduleItems[item.id];
+    }
+
+    addError(e, saveInfo) {
+        let item = this.getModuleItem(saveInfo);
+        item.addError(e)
+        this.setModuleItem(item);
+    }
+
+    removeError(errorId, saveInfo) {
+        let item = this.getModuleItem(saveInfo);
+        item.removeError(errorId)
+        this.setModuleItem(item);
+    }
+
+    getModuleItem(saveInfo) {
+        let _item;
+
+        //check if module Item already created
+        if (this.moduleItemExists(saveInfo.moduleItemId)) {
+            _item = this.moduleItems[saveInfo.moduleItemId];
+        }
+
+        if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
+
+        //recursion | return new module if one not found
+        this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
+        return this.getModuleItem(saveInfo);
+    }
+
+    moduleItemExists(moduleItemId) {
+        let condition = false;
+        Object.keys(this.moduleItems).forEach(function (key) {
+            if (moduleItemId === key) {
+                condition = true;
+                return condition;
+            }
+        });
+
+        return condition;
+    }
+
+    checked() {
+        if (this.count < 1) { return false; }
+
+        let modules = this.moduleItems;
+        Object.keys(this.moduleItems).forEach(function (key) {
+            let item = ModuleItem.deserialize(modules[key]);
+            if (item.checked === false) {
+                return false;
+            }
+        })
+
+        return true;
+    }
+
+    setModuleItem(moduleItem) {
+        this.moduleItems[moduleItem.id] = moduleItem.serialize();
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
+    }
+}
+
+class ModuleItem {
+
+    constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
+        this.errors = errors;
+        this.count = count;
+        this.id = id;
+        this.url = url;
+        if (title === null) {
+            this.title = "Placeholder Title";
+        }
+        else {
             this.title = title;
-            this.published = published;
         }
-
-        addItem(item) {
-            this.count++;
-            this.moduleItems[item.id] = item.serialize();
-            return this.moduleItems[item.id];
-        }
-
-        addError(e, saveInfo) {
-            let item = this.getModuleItem(saveInfo);
-            item.addError(e)
-            this.setModuleItem(item);
-        }
-
-        removeError(errorId, saveInfo) {
-            let item = this.getModuleItem(saveInfo);
-            item.removeError(errorId)
-            this.setModuleItem(item);
-        }
-
-        getModuleItem(saveInfo) {
-            let _item;
-
-            //check if module Item already created
-            if (this.moduleItemExists(saveInfo.moduleItemId)) {
-                _item = this.moduleItems[saveInfo.moduleItemId];
-            }
-
-            if (_item != null && _item != undefined) { return ModuleItem.deserialize(_item); }
-
-            //recursion | return new module if one not found
-            this.moduleItems[saveInfo.moduleItemId] = new ModuleItem(saveInfo.moduleId, saveInfo.moduleItemId, saveInfo.pageType, saveInfo.pageTitle).serialize();
-            return this.getModuleItem(saveInfo);
-        }
-
-        moduleItemExists(moduleItemId) {
-            let condition = false;
-            Object.keys(this.moduleItems).forEach(function (key) {
-                if (moduleItemId === key) {
-                    condition = true;
-                    return condition;
-                }
-            });
-
-            return condition;
-        }
-
-        checked() {
-            if (this.count < 1) { return false; }
-
-            let modules = this.moduleItems;
-            Object.keys(this.moduleItems).forEach(function (key) {
-                let item = ModuleItem.deserialize(modules[key]);
-                if (item.checked === false) {
-                    return false;
-                }
-            })
-
-            return true;
-        }
-
-        setModuleItem(moduleItem) {
-            this.moduleItems[moduleItem.id] = moduleItem.serialize();
-        }
-
-        serialize() {
-            return JSON.stringify(this);
-        }
-
-        static deserialize(serialized) {
-            const obj = JSON.parse(serialized);
-            return new Module(obj.id, obj.title, obj.published, obj.moduleItems, obj.count);
-        }
+        this.type = type;
+        this.checked = checked;
+        this.id2 = id2;
     }
-    class ModuleItem {
 
-        constructor(id, type, title, url, id2 = null, count = 0, errors = {}, checked = false) {
-            this.errors = errors;
-            this.count = count;
-            this.id = id;
-            this.url = url;
-            if (title === null) {
-                this.title = "Placeholder Title";
-            }
-            else {
-                this.title = title;
-            }
-            this.type = type;
-            this.checked = checked;
-            this.id2 = id2;
+    addError(e) {
+        //grab error or make a new one if needed
+        if (this.errorArrayExists(e)) {
+            this.errors[e.name].push(e.serialize());
         }
-
-        addError(e) {
-            //grab error or make a new one if needed
-            if (this.errorArrayExists(e)) {
-                this.errors[e.name].push(e.serialize());
-            }
-            else {
-                this.errors[e.name] = [];
-                this.errors[e.name].push(e.serialize());
-            }
-            this.count++;
+        else {
+            this.errors[e.name] = [];
+            this.errors[e.name].push(e.serialize());
         }
-
-        //remove error within object. Return removed error for remove
-        //in other areas
-        removeError(id) {
-            //remove error from list
-            for (let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
-                if (Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
-                    this.count--;
-                    //remove error from page and return
-                    return this.errors[id.split('-')[0]].splice(i, 1);
-                }
-            }
-        }
-
-        findErrorLocation(id) {
-            let _key, index;
-            Object.keys(this.errors).forEach(key => {
-                for (let i = 0; i < this.errors[key].length; i++) {
-                    let errorId = JSON.parse(this.errors[key][i]).id;
-                    if (errorId === id) {
-                        _key = key;
-                        index = i;
-                    }
-                }
-            });
-
-            const response = {
-                index: index,
-                key: _key,
-            }
-
-            return response;
-        }
-
-        addChangeToError(id, change) {
-            //grab location of error
-            const location = this.findErrorLocation(id);
-
-            //deserealize error and add change
-            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
-            error.addChange(change);
-
-            this.errors[location.key][location.index] = error.serialize();
-        }
-
-        removeChangeFromError(id, change) {
-            //grab location of error
-            const location = this.findErrorLocation(id);
-
-            //deserealize error and add change
-            let error = Page_Error.deserialize(this.errors[location.key][location.index]);
-            error.removeChange(change);
-
-            this.errors[location.key][location.index] = error.serialize();
-        }
-
-        errorArrayExists(e) {
-            let condition = false;
-            Object.keys(this.errors).forEach(function (key) {
-                if (e.name === key) {
-                    condition = true;
-                    return condition;
-                }
-            });
-
-            return condition;
-        }
-
-        errorCountAll() {
-            return this.count;
-        }
-
-        errorCountSingle(name) {
-            const tempJSON = JSON.parse(this.errors);
-
-            //if specific errors exist
-            if (name in tempJSON) {
-                return tempJSON[name].length;
-            } else {//if error type not on page
-                return 0;
-            }
-        }
-
-        errorsList() {
-            return this.errors;
-        }
-
-        serialize() {
-            return JSON.stringify(this);
-        }
-
-        static deserialize(serialized) {
-            const obj = JSON.parse(serialized);
-            return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
-        }
+        this.count++;
     }
-    class Page_Error {
-        constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1, match = "", changes = {}, required = false) {
-            this.name = name;
-            this.required = required;
-            this.startIndex = startIndex;
-            this.endIndex = endIndex;
-            this.id = id
-            this.path = path;
-            this.changes = changes;
-            this.match = match;
-        }
 
-        serialize() {
-            return JSON.stringify(this);
-        }
+    clearErrors() {
+        this.errors = {};
+        this.count = 0;
+        this.checked = false;
+    }
 
-        addChange(change) {
-            this.changes[change.key] = change.value;
-            console.log(this);
-        }
-
-        removeChange(change) {
-            delete this.changes[change.key];
-            console.log(this);
-        }
-
-        static generateRandomId(name) {
-            return (
-                name +
-                '-' +
-                Math.floor(Math.random() * 9999).toString() +
-                '-' +
-                Math.floor(Math.random() * 9999).toString() +
-                '-' +
-                Date.now().toString()
-            )
-        }
-
-        static deserialize(serialized) {
-            let obj;
-
-            //try and parse
-            try {
-                obj = JSON.parse(serialized);
+    //remove error within object. Return removed error for remove
+    //in other areas
+    removeError(id) {
+        //remove error from list
+        for (let i = 0; i < this.errors[id.split('-')[0]].length; i++) {
+            if (Page_Error.deserialize(this.errors[id.split('-')[0]][i]).id === id) {
+                this.count--;
+                //remove error from page and return
+                return this.errors[id.split('-')[0]].splice(i, 1);
             }
-            catch {//if fail, serialize, then try and parse again
-                obj = JSON.parse(JSON.stringify(serialized));
-            }
-
-            return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
         }
     }
 
+    findErrorLocation(id) {
+        let _key, index;
+        Object.keys(this.errors).forEach(key => {
+            for (let i = 0; i < this.errors[key].length; i++) {
+                let errorId = JSON.parse(this.errors[key][i]).id;
+                if (errorId === id) {
+                    _key = key;
+                    index = i;
+                }
+            }
+        });
+
+        const response = {
+            index: index,
+            key: _key,
+        }
+
+        return response;
+    }
+
+    addChangeToError(id, change) {
+        //grab location of error
+        const location = this.findErrorLocation(id);
+
+        //deserealize error and add change
+        let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+        error.addChange(change);
+
+        this.errors[location.key][location.index] = error.serialize();
+    }
+
+    removeChangeFromError(id, change) {
+        //grab location of error
+        const location = this.findErrorLocation(id);
+
+        //deserealize error and add change
+        let error = Page_Error.deserialize(this.errors[location.key][location.index]);
+        error.removeChange(change);
+
+        this.errors[location.key][location.index] = error.serialize();
+    }
+
+    errorArrayExists(e) {
+        let condition = false;
+        Object.keys(this.errors).forEach(function (key) {
+            if (e.name === key) {
+                condition = true;
+                return condition;
+            }
+        });
+
+        return condition;
+    }
+
+    errorCountAll() {
+        return this.count;
+    }
+
+    errorCountSingle(name) {
+        const tempJSON = JSON.parse(this.errors);
+
+        //if specific errors exist
+        if (name in tempJSON) {
+            return tempJSON[name].length;
+        } else {//if error type not on page
+            return 0;
+        }
+    }
+
+    errorsList() {
+        return this.errors;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new ModuleItem(obj.id, obj.type, obj.title, obj.url, obj.id2, obj.count, obj.errors, obj.checked);
+    }
+}
+
+class Page_Error {
+    constructor(name, path = -1, id = -1, startIndex = -1, endIndex = -1, match = "", changes = {}, required = false) {
+        this.name = name;
+        this.required = required;
+        this.startIndex = startIndex;
+        this.endIndex = endIndex;
+        this.id = id
+        this.path = path;
+        this.changes = changes;
+        this.match = match;
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    addChange(change) {
+        this.changes[change.key] = change.value;
+    }
+
+    removeChange(change) {
+        delete this.changes[change.key];
+    }
+
+    static generateRandomId(name) {
+        return (
+            name +
+            '-' +
+            Math.floor(Math.random() * 9999).toString() +
+            '-' +
+            Math.floor(Math.random() * 9999).toString() +
+            '-' +
+            Date.now().toString()
+        )
+    }
+
+    static deserialize(serialized) {
+        let obj;
+
+        //try and parse
+        try {
+            obj = JSON.parse(serialized);
+        }
+        catch {//if fail, serialize, then try and parse again
+            obj = JSON.parse(JSON.stringify(serialized));
+        }
+
+        return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
+    }
+}
+
+class Pseudo_Element {
+    constructor(tagName, attributes = {}, innerText, path = "-1", children = new Array()) {
+        this.tagName = tagName;
+        this.attributes = attributes;
+        this.children = children;
+        this.path = path
+        this.innerText = innerText;
+
+        this.voidElements = new Set([
+            "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+            "meta", "param", "source", "track", "wbr"
+        ]);
+    }
+
+    isVoidElement() {
+        return (this.voidElements.has(this.tagName));
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Pseudo_Element(obj.tagName, obj.attributes, obj.innerText, obj.path, obj.children);
+    }
+}
+
+(() => {
     let _errors = new Array();
     let contentEl;
     const textLookUp = "#:~:text=";
@@ -904,9 +939,9 @@ function createCombo(id) {
             str = str + '$';
         }
 
-        //if main content element isn't found within a depth of 15, 
+        //if main content element isn't found within a depth of 25, 
         // break out of recursion
-        if (count > 15) {
+        if (count > 25) {
             return -1;
         }
 
@@ -914,7 +949,7 @@ function createCombo(id) {
         let offset = 0;//account for invisible '#text' nodes
         for(let i = 0; i < node.parentNode.children.length; i++) {
             if(node.parentNode.children[i].nodeName === '#text') {offset++;}
-            if(node === node.parentNode.children[i]) {                
+            if(node === node.parentNode.children[i]) {
                 //add index to node path string
                 str += i + '-' + offset;
 
@@ -942,7 +977,7 @@ function createCombo(id) {
      * @param {Array<string>} indexes indexes for search
      * @returns {Element} the desired element
     */
-    const searchNode = (parentEl, _indexes) => {
+    const searchNode = (_indexes, parentEl = contentEl) => {
         let indexes = _indexes.toString().split('$');//split path
         //array needs to have elements
         if(indexes.length < 1) {
@@ -954,17 +989,16 @@ function createCombo(id) {
         let number1 = parseInt(value[0]);
         let number2 = parseInt(value[1]);
         //if webpage is an edit page, alter index
-        let index = (window.location.href.includes('/edit')) ? 
-        parseInt(number1 - number2) : number1;
+        let index = (window.location.href.includes('/edit')) ? parseInt(number1 - number2) : number1;
 
         //if there is only a single element left
         //return desired node
-        if(indexes.length < 2) {
+        if(indexes.length < 1) {
             return parentEl.children[index];//return desired element
         }
 
         //recurse to locate node 
-        return searchNode(parentEl.children[parseInt(index)], indexes.join('$'));
+        return searchNode(indexes.join('$'), parentEl.children[parseInt(index)]);
     }
 
     /**
@@ -1147,16 +1181,6 @@ function createCombo(id) {
         return errorsFoundList;
     }
 
-    const setErrorBtn = () => {
-        let btn = document.querySelector('body').appendChild(HTML_CHUNK_REF_DOC.querySelector('.add-error-button').cloneNode(true));
-        createCombo('CAT-combo1');
-
-        //event listerner: add new error
-        btn.querySelector('button').addEventListener('click', addError.bind());
-        
-        console.log(btn);
-    }
-
     /**
      * Add error to course
      */
@@ -1230,9 +1254,9 @@ function createCombo(id) {
         let range = document.createRange()//new display range
         let node;//node to find
         if (window.location.href.includes('/edit') && window.location.href.includes('pages')) {
-            node = searchNode(contentEl, updateSearchPath(_e.path, -1));
+            node = searchNode(updateSearchPath(_e.path, -1));
         } else {
-            node = searchNode(contentEl, error.path);
+            node = searchNode(error.path);
         }
 
         range.selectNodeContents(node);//direct to node contents
@@ -1261,7 +1285,6 @@ function createCombo(id) {
 
                     //check if start index fits within element string
                     if (node.textContent.length > start) {
-                        console.log(node.textContent);
                         range.setStart(node, start);
                         start = -1;//set start to -1 as a form of skipping the rest of recursion
                         return;
@@ -1294,7 +1317,6 @@ function createCombo(id) {
 
                     //check if start index fits within element string
                     if (node.textContent.length > end) {
-                        console.log(node.textContent);
                         range.setEnd(node, end);
                         end = -1;//set start to -1 as a form of skipping the rest of recursion
                         return;
@@ -1364,7 +1386,6 @@ function createCombo(id) {
 
             //check if invisible link
             if(a.innerText.length < 1) {
-                console.log(a.innerText);
                 errorsFoundList.push(
                     new Page_Error(
                         'Link(invisible)',
@@ -1577,7 +1598,6 @@ function createCombo(id) {
             //remove any undefined errors from audit
             errors = errors.filter(e => Page_Error.deserialize(e).name !== undefined);
 
-            console.log(errors);
             errors.forEach(e => console.log(Page_Error.deserialize(e)));
 
             /* Diplay Errors on Web Page */
@@ -1649,7 +1669,6 @@ function createCombo(id) {
             if(module.count > 0) {course.addModule(module); }
         }
 
-        console.log(course);
         return(course.serialize());
     }
 
@@ -1694,42 +1713,38 @@ function createCombo(id) {
             let range = document.createRange()//new display range
             let node;//node to find
             if(window.location.href.includes('/edit') && window.location.href.includes('pages')) {
-                node = searchNode(contentEl,updateSearchPath(_e.path, -1));
+                node = searchNode(updateSearchPath(_e.path, -1));
             } else {
-                node = searchNode(contentEl, _e.path);
+                node = searchNode(_e.path);
             }
 
             range.selectNodeContents(node);//direct to node contents
             
             //display part of element
-            if(_e.match.length > 0) {//if matched to instance within element
-                console.log(node);
+            if(_e.match.length > 1) {//if matched to instance within element
 
                 let start = _e.startIndex;//adjustable value for start index
                 //set range start and node
-                const setRangeRecursion_Start = (node) => {
+                const setRangeRecursion_Start = (_node) => {
                     if(start < 0) {//skip the rest of recursion if solution is found
                         return;
                     }
 
-                    console.log(node.childNodes)
-
                     //if node is an element node
-                    if (node.nodeType === 1) {
+                    if (_node.nodeType === 1) {
 
                         //iterate through all child nodes
-                        node.childNodes.forEach(n => {
+                        _node.childNodes.forEach(n => {
                             setRangeRecursion_Start(n);
                         })
                     }
 
                     //if node is a #text node
-                    if(node.nodeType === 3) {
+                    if(_node.nodeType === 3) {
 
                          //check if start index fits within element string
-                        if (node.textContent.length > start) {
-                            console.log(node.textContent);
-                            range.setStart(node, start);
+                        if (_node.textContent.length > start) {
+                            range.setStart(_node, start);
                             start = -1;//set start to -1 as a form of skipping the rest of recursion
                             return;
                         }
@@ -1761,7 +1776,6 @@ function createCombo(id) {
 
                         //check if start index fits within element string
                         if (node.textContent.length > end) {
-                            console.log(node.textContent);
                             range.setEnd(node, end);
                             end = -1;//set start to -1 as a form of skipping the rest of recursion
                             return;
@@ -1786,9 +1800,9 @@ function createCombo(id) {
             let node;//node to find
             //adjust search pattern if on edit page
             if (window.location.href.includes('/edit') && window.location.href.includes('pages')) {
-                node = searchNode(contentEl, updateSearchPath(r.error.path, -1));
+                node = searchNode(updateSearchPath(r.error.path, -1));
             } else {
-                node = searchNode(contentEl, r.error.path);
+                node = searchNode( r.error.path);
             }
 
             if (r.isElement) {//if error is full element, add class
@@ -1813,9 +1827,9 @@ function createCombo(id) {
         let element;
         //if 'edit' on 'pages' page, change path
         if(window.location.href.includes('/edit') && window.location.href.includes('pages')) {
-            element = searchNode(contentEl, updateSearchPath(error.path, -1));
+            element = searchNode( updateSearchPath(error.path, -1));
         } else {
-            element = searchNode(contentEl, error.path);
+            element = searchNode( error.path);
         }
         
         let str;
@@ -1922,9 +1936,9 @@ function createCombo(id) {
         let element;
         //if 'edit' on 'pages' page, change path
         if(window.location.href.includes('/edit') && window.location.href.includes('pages')) {
-            element = searchNode(contentEl, updateSearchPath(error.path, -1));
+            element = searchNode( updateSearchPath(error.path, -1));
         } else {
-            element = searchNode(contentEl, error.path);
+            element = searchNode( error.path);
         }
 
         //display editor console: add event listener to error node on focus and lose focus
@@ -2037,7 +2051,7 @@ function createCombo(id) {
         
     }
 
-    const removeSelection = (id) => {
+    const removeSelection = async (id) => {
         let node = document.getElementById(id);
 
         if (node.classList.contains('strikethrough')) {
@@ -2067,8 +2081,6 @@ function createCombo(id) {
                 })
             })
         }
-
-        
     }
 
     //toggle italic class on element based on id given
@@ -2114,8 +2126,6 @@ function createCombo(id) {
         module.setModuleItem(moduleItem)
         course.setModule(module);
 
-
-        console.log(moduleItem);
         saveCourse(course.serialize());
     }
 
@@ -2184,6 +2194,7 @@ function createCombo(id) {
         //remove error from DOM
         removeErrorFromDom(node, Page_Error.deserialize(error));
         
+        const response = await chrome.runtime.sendMessage({type: "ERROR-REMOVED"});
     }
 
     const toggleHighlight = (id) => {
@@ -2226,23 +2237,6 @@ function createCombo(id) {
         styleEl.innerText = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/page-loaded.css');
         document.head.appendChild(styleEl);
 
-        console.log(HTML_CHUNK_REF_DOC);
-
-        //if not on edit page
-        if (!window.location.href.includes('/edit')) {
-            //add error btn to DOM
-            setErrorBtn();
-
-            //add mouse up functio to contentEl
-            contentEl.addEventListener('mouseup', addErrorContextMenu.bind(window.getSelection()));
-
-            //display image alt text
-            contentEl.querySelectorAll("img").forEach((el) => {
-                el.parentElement.setAttribute('alt', el.getAttribute('alt'));
-            });
-
-        }
-
         const response = await chrome.runtime.sendMessage({type: "NEW-PAGE-LOADED"});
     }
 
@@ -2267,53 +2261,64 @@ function createCombo(id) {
 
         
     }
-
-    const navigateToError = (text) => {
-        text.replace(" ", "%20");
-        window.history.replaceState({}, '', window.location.href + textLookUp + "");
-    }
-
-    const isTextHighlighted = () => {
-        const selection = window.getSelection();
-        return selection.toString().length > 0;
-    }
-
-    const getSelection = () => {
-        var seltxt = '';
+    
+    const getSelection = async () => {
+        //get selection
+        var selection;
         if (window.getSelection) {
-            seltxt = window.getSelection();
+            selection = window.getSelection();
         } else if (document.getSelection) {
-            seltxt = document.getSelection();
+            selection = document.getSelection();
         } else if (document.selection) {
-            seltxt = document.selection.createRange().text;
-        }
-        else return null;
-        return seltxt;
-    }
+            selection = document.selection.createRange().text;
+        } else {selection = null; }
 
-    const addErrorContextMenu = () => {
-        //get current window selection
-        let selection = getSelection();
-
-        //if selected element exists within contentel
+        //if selected element exists within contentEl
         if (contentEl.contains(selection.focusNode.parentElement)) {
             //if selection is text
             if (selection.toString().length > 0) {
                 activeElement = selection.focusNode.parentElement;
                 activeRange = selection.getRangeAt(0);
-                console.log(selection.toString());
             } else {
                 activeElement = selection.focusNode.parentElement;
                 activeRange = null;
-                console.log(selection.focusNode.parentElement);
             }
         }
 
-        document.getElementById('add-error-button').classList.add('display');
+        let pseudoEl = BuildPseudoElement(activeElement);
+
+        const response = await chrome.runtime.sendMessage({type: "ELEMENT-SELECTED", pseudoElement: pseudoEl});
+    }
+
+    //create a psuedoelement object
+    const BuildPseudoElement = (element) => {
+        console.log('building element');
+        //get element name
+        let tagName = element.tagName.toLowerCase();
+
+        //get element attributes
+        let attributes = {};
+        for (let i = 0; i < element.attributes.length; i++) {
+            attributes[element.attributes.item(i).name] = element.attributes.item(i).value;
+        }
+
+        //create pseudo elements for children
+        let children = new Array();
+        for(let i = 0; i < element.children.length; i++) {
+            children.push(BuildPseudoElement(element.children[i]));
+        }
+
+        //get element path
+        let path = buildNodePath(element);
+
+        //outer html
+        let innerText = [].reduce.call(element.childNodes, function (a, b) { return a + (b.nodeType === 3 ? b.textContent : ''); }, '');
+
+        //return pseudo element
+        return new Pseudo_Element(tagName, attributes, innerText, path, children).serialize();
     }
 
     const removeErrorFromDom = (node, error) => {
-        console.log(error);
         //create span to replace error node
         let span = document.createElement('span');
 
@@ -2341,63 +2346,63 @@ function createCombo(id) {
 
     }
 
+    window.addEventListener('load', async () => {
+        if (window.location.href.includes(".instructure.com/courses/") && !window.location.href.includes("modules")) {
+            if (window.location.href.includes("quizzes") || window.location.href.includes("pages") ||
+                window.location.href.includes("discussion_topics") || window.location.href.includes("assignments")) {
+                /* HTML Chunks to insert into DOM */
+
+                //HTML CHunks reference document; to query for needed chunks
+                HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
+                CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
+
+                //determine main content element based on page type
+                if (window.location.href.includes('pages')) {
+                    contentEl = document.querySelectorAll("#content div.user_content")[0];
+                }
+                else if (window.location.href.includes('quizzes')) {
+                    contentEl = document.querySelectorAll('div.user_content')[0];
+                }
+                else if (window.location.href.includes('discussion_topics')) {
+                    contentEl = document.querySelectorAll('span.user_content')[0];
+                }
+                else {
+                    contentEl = document.querySelectorAll('#assignment_show div.description')[0];
+                }
+
+                //if 'edit' version of webpage
+                if (window.location.href.includes('/edit')) {
+                    const iframe = document.getElementById('wiki_page_body_ifr');
+                    const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+                    contentEl = iframeDocument.getElementById('tinymce');
+
+                    let styleEl = iframeDocument.createElement('style');
+                    styleEl.type = 'text/css';
+                    styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+                    iframeDocument.head.appendChild(styleEl);//append to head
+                } else {
+                    contentEl.addEventListener('mouseup', getSelection.bind());
+                }
+
+                /* Load stylesheet into current document */
+
+                //create style el
+                let styleEl = document.createElement('style');
+                styleEl.type = 'text/css';
+                styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
+                document.head.appendChild(styleEl);//append to head
+
+                NewCoursePageLoaded();
+            }
+        } else if (window.location.href.includes(".instructure.com/courses/") && window.location.href.includes("modules")) {
+            NewCoursePageLoaded();
+        }
+    })
+
     chrome.runtime.onMessage.addListener(
         async function (request, sender, sendResponse) {
-            const { type, value, moduleItemId, pageTitle, pageType, courseId, url, errors } = request;
-
-            //new page request
-            if (type === "NEW") {
-                if (window.location.href.includes(".instructure.com/courses/") && !window.location.href.includes("modules")) {
-                    if (window.location.href.includes("quizzes") || window.location.href.includes("pages") ||
-                        window.location.href.includes("discussion_topics") || window.location.href.includes("assignments")) {
-                        /* HTML Chunks to insert into DOM */
-
-                        //HTML CHunks reference document; to query for needed chunks
-                        HTML_CHUNK_REF_DOC = await fetchHTMLChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/html-code-chunks/error-found.html');
-                        CSS_CHUNK = await fetchCSSChunk('https://raw.githubusercontent.com/Wischok/canvas-accessibility-extension/refs/heads/main/assets/styles/errors-found.css')
-
-                        //determine main content element based on page type
-                        if (window.location.href.includes('pages')) {
-                            contentEl = document.querySelectorAll("#content div.user_content")[0];
-                        }
-                        else if (window.location.href.includes('quizzes')) {
-                            contentEl = document.querySelectorAll('div.user_content')[0];
-                        }
-                        else if (window.location.href.includes('discussion_topics')) {
-                            contentEl = document.querySelectorAll('span.user_content')[0];
-                        }
-                        else {
-                            contentEl = document.querySelectorAll('#assignment_show div.description')[0];
-                        }
-
-                        console.log(contentEl);
-
-                        //if 'edit' version of webpage
-                        if (window.location.href.includes('/edit')) {
-                            const iframe = document.getElementById('wiki_page_body_ifr');
-                            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-
-                            contentEl = iframeDocument.getElementById('tinymce');
-                        
-                            let styleEl = iframeDocument.createElement('style');
-                            styleEl.type = 'text/css';
-                            styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
-                            iframeDocument.head.appendChild(styleEl);//append to head
-                        }
-
-                        /* Load stylesheet into current document */
-
-                        //create style el
-                        let styleEl = document.createElement('style');
-                        styleEl.type = 'text/css';
-                        styleEl.innerText = CSS_CHUNK;//add css chunk from github REPO
-                        document.head.appendChild(styleEl);//append to head
-
-                        NewCoursePageLoaded();
-                        return;
-                    }
-                }
-            }
+            const { type, value, moduleItemId, pageTitle, pageType, courseId, url, errors, error, path } = request;
 
             if (type === "AUDIT") {
                 audit().then(
@@ -2492,6 +2497,36 @@ function createCombo(id) {
 
             if (type === "DISPLAY-ERRORS") {
                 displayErrors(JSON.parse(errors));
+            }
+
+            if(type === "ERROR-REMOVED") {
+                e = Page_Error.deserialize(error);
+
+                removeErrorFromDom(searchNode(e.path), e);
+            }
+
+            if(type === "SELECTED-ELEMENT-FOCUS") {
+                if(path != 'null') {
+                    let el = searchNode(path);
+
+                    if(el.classList.contains('unfocus-element')) {
+                        el.classList.remove('unfocus-element');
+                    }
+
+                    el.classList.add('focus-element');
+                }
+            }
+
+            if(type === "SELECTED-ELEMENT-UNFOCUS") {
+                if(path != 'null') {
+                    let el = searchNode(path);
+
+                    if(el.classList.contains('focus-element')) {
+                        el.classList.remove('focus-element');
+                    }
+
+                    el.classList.add('unfocus-element');
+                }
             }
         }
     );

@@ -1,0 +1,77 @@
+<!-- head button over module accordion -->
+<div class="head flex-row">
+    <button class="flex-row" aria-expanded="false" aria-controls="">
+        <div class="left-content">
+            <div class="top-row">
+                <span class="name p1">Module Name</span>
+            </div>
+            <div class="bottom-row flex-row">
+                <span class="tag p3">Errors: <span class="error-count">00</span></span>
+                <span class="tag p3">Pages: <span class="page-count">00</span></span>
+            </div>
+        </div>
+        <span class="img-wrapper"><img src="/assets/images/caret-blue-down.png" alt=""></span>
+    </button>
+</div>
+
+<!-- page list of module accordion -->
+<ol class="pages" role="region" title='Module, "NAME" list of pages' hidden>
+    <li>
+        <a href="">
+            <div class="top-row">
+                <span>Name of Page</span>
+            </div>
+            <div class="bottom-row">
+                <span class="tag p3">Errors: <span class="error-count">00</span></span>
+            </div>
+        </a>
+        <hr class="hr1">
+    </li>
+</ol>
+
+<!-- error type accordion -->
+<li class="error-type">
+    <div class="head flex-row">
+        <button class="flex-row" aria-expanded="false" aria-controls="">
+            <span class="p1">Error Name</span>
+            <span class="p3"><span class="error-instance-count">00</span> instances (s)</span>
+            <span class="img-wrapper"><img src="/assets/images/caret-blue-down.png" alt=""></span>
+        </button>
+    </div>
+    
+</li>
+
+<!-- content section -->
+<ul class="region" role="region" title='List of instances belonging to error type, "NAME"' hidden>
+    <li>
+        <button>
+            <span class="match p1">Error name / instance #</span>
+            <span class="img-wrapper"><img src="/assets/images/trash.png" alt=""></span>
+            <hr class="hr1">
+        </button>
+    </li>
+</ul>
+
+<!-- element selected element -->
+ <!-- TODO - accessibility: adjust lists so that lists are properly display on elements with multiple children -->
+<li class="selected-element-code">
+    <div class="opening-bracket">
+        <span class="element-bracket">&lt; </span>
+        <span class="tagName1"></span>
+        <span class="element-attribute-container"></span>
+        <span class="element-bracket"> &gt;</span>
+    </div>
+    <div class="innertext"></div>
+    <ul class="innerHTML" aria-hidden="true"></ul>
+    <div class="closing-bracket">
+        <span class="element-bracket">&lt; </span>
+        <span class="tagName2"></span>
+        <span class="element-bracket"> &gt;</span>
+    </div>
+</li>
+
+<span class="element-attribute-wrapper">
+    <span class="element-attribute"></span>
+    <span class="element-text">=</span>
+    <span class="element-string"></span>
+</span>

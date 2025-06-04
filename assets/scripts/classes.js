@@ -258,6 +258,12 @@ export class ModuleItem {
         this.count++;
     }
 
+    clearErrors() {
+        this.errors = {};
+        this.count = 0;
+        this.checked = false;
+    }
+
     //remove error within object. Return removed error for remove
     //in other areas
     removeError(id) {
@@ -403,5 +409,32 @@ export class Page_Error {
         }
 
         return new Page_Error(obj.name, obj.path, obj.id, obj.startIndex, obj.endIndex, obj.match, obj.changes, obj.required);
+    }
+}
+export class Pseudo_Element {
+    constructor(tagName, attributes = {}, innerText, path = "-1", children = new Array()) {
+        this.tagName = tagName;
+        this.attributes = attributes;
+        this.children = children;
+        this.path = path
+        this.innerText = innerText;
+
+        this.voidElements = new Set([
+            "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+            "meta", "param", "source", "track", "wbr"
+        ]);
+    }
+
+    isVoidElement() {
+        return (this.voidElements.has(this.tagName));
+    }
+
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static deserialize(serialized) {
+        const obj = JSON.parse(serialized);
+        return new Pseudo_Element(obj.tagName, obj.attributes, obj.innerText, obj.path, obj.children);
     }
 }

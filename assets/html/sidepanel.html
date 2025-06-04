@@ -12,18 +12,18 @@
   <!-- fonts  -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cascadia+Mono:ital,wght@0,200..700;1,200..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
   <!-- scripts -->
-  <script type="module" src="/assets/scripts/contentScript.js"></script>
+  <script type="module" src="/assets/scripts/panel.js"></script>
 
 </head>
 <body>
   <main>
     <!-- Panel Head -->
-    <header class="header-top flex-row panel-padding">
+    <header class="header-top flex-row panel-padding" id="course-header">
       <button class="btn2 back" title="Go back." id="back">
-        <img src="/assets/images/caret-up.png" alt="">
+        <img src="/assets/images/caret-blue-down.png" alt="">
       </button>
       <!-- Title -->
       <div class="title flex-row-center" id="title-container">
@@ -39,22 +39,22 @@
     <div class="short-details panel-padding" id="course-short-details-container">
       <div class="flex-row top-content">
         <img src="/assets/images/pfp.png" alt="">
-        <input type="text" class="input1" value="Professor Name">
+        <input type="text" class="input1" value="Professor Name" id="prof-name">
       </div>
       <div class="flex-row bottom-content">
         <img src="/assets/images/book.png" alt="">
-        <input type="text" class="input1" value="The Title of the Course">
+        <input type="text" class="input1" value="The Title of the Course" id="course-name">
       </div>
+      <p class="p3">Page-Type: Canvas <span id="page-type"></span></p>
       <hr class="hr1">
     </div>
     <!-- Add Error Section -->
-    <div class="container add-error-container panel-padding display" id="add-error-container">
+    <div class="container add-error-container panel-padding" id="add-error-container">
       <h2>Add Error</h2>
       <p class="p3">Element Selected</p>
       <div class="html-window">
-        <code class="wrapper" id="element-selected">
-          
-        </code>
+        <ul class="wrapper" id="element-selected" title="Selected Element display as a list" path="null">
+        </ul>
       </div>
       <div class="combo combo-standard" id="combo1">
         <input class="combo-input input1 no-animate" name="Error Type" id="error-type" role="combobox" tabindex="0"
@@ -71,9 +71,9 @@
     </div>
     <!-- Display Errors Section -->
     <div class="container page-errors-container panel-padding display" id="errors-container">
-      <h2>Page Errors</h2>
-      <ul class="list1" class="errors" id="error-list" title="List of accessibility issues found on page.">
-
+      <h2>Page Errors: <span id="page-error-count">00</span></h2>
+      <ul class="errors" id="error-list" title="List of accessibility issues found on page.">
+        
       </ul>
       <hr class="hr1">
     </div>
@@ -87,7 +87,7 @@
       <hr class="hr1">
     </div>
     <!-- Select Course Section -->
-    <div class="container container4" id="course-list-container">
+    <div class="container course-list-container panel-padding" id="course-list-container">
       <h2>Other Course</h2>
       <!-- List of previous canvas courses -->
       <ul class="list1" title="Previous Canvas Courses" id="courses">
@@ -104,9 +104,35 @@
       </ul>
       <hr class="hr1">
     </div>
+    <!-- course description container -->
+    <div class="container course-description1 panel-padding" id="course-description1-container">
+      <div class="desc flex-row-center">
+        <div class="square flex-column-center">
+          <p class="number" id="total-errors-count">00</p>
+          <p class="p1">Total<br>Errors</p>
+        </div>
+        <div class="square">
+          <p class="number" id="total-modules-count">00</p>
+          <p class="p1">Total<br>Modules</p>
+        </div>
+        <div class="square">
+          <p class="number" id="modules-checked-count">00</p>
+          <p class="p1">Modules<br>Checked</p>
+        </div>
+      </div>
+      <hr class="hr1">
+    </div>
+    <!-- course modules container -->
+     <div class="container course-modules panel-padding" id="course-modules-container">
+      <h2>Modules:</h2>
+        <div class="accordion" id="accordion-group" title="Modules list in order.">
+          
+        </div>
+      <hr class="hr1">
+     </div>
     <!-- sidePanel Console -->
     <div class="container console" id="console-container">
-      <h2 class="work-sans">Console</h2>
+      <h2>Console</h2>
       <ul class="list2" title="Extension log / console." id="console">
         <li class="li log">
           <p>
@@ -115,7 +141,42 @@
           </p>
         </li>
       </ul>
+      <hr class="hr1">
     </div>
+    <!-- Additional Buttons -->
+     <div class="container additional-buttons panel-padding" id="additional-buttons">
+      <button title="Go to display errors" id="display-errors">
+        <img src="/assets/images/diagram.png" alt="">
+      </button>
+      <button title="Go to fix all errors" id="fix-all">
+        <img src="/assets/images/fix.png" alt="">
+      </button>
+      <button title="Go to course list">
+        <img src="/assets/images/online-course.png" alt="">
+      </button>
+      <button title="Go to clear errors" id="clear-page-errors">
+        <img src="/assets/images/trash.png" alt="">
+      </button>
+      <button title="Go to clear chrome extension storage" id="clear">
+        <img src="/assets/images/data-base.png" alt="">
+      </button>
+      <button title="Go to audit page">
+        <img src="/assets/images/magnifying-glass.png" alt="">
+      </button>
+      <button title="Go to course details">
+        <img src="/assets/images/book.png" alt="">
+      </button>
+      <button title="Go to console">
+        <img src="/assets/images/report.png" alt="">
+      </button>
+      <button title="Go to generate report">
+        <img src="/assets/images/report2.png" alt="">
+      </button>
+      <button title="Go to settings">
+        <img src="/assets/images/settings.png" alt="">
+      </button>
+     </div>
+     <hr class="hr1">
   </main>
 </body>
 </html>
